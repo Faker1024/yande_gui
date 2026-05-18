@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:yande_gui/services/tag_translations_service.dart';
+import 'package:yande_gui/ui/app_ui.dart';
 
 class TranslatedTag extends StatelessWidget {
   final String text;
@@ -8,23 +9,28 @@ class TranslatedTag extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(10),
-        color: Theme.of(context).colorScheme.secondaryContainer.withAlpha(150),
-      ),
+    final theme = Theme.of(context);
+    return AppPill(
       child: RichText(
         text: TextSpan(
           children: [
             TextSpan(
               text: text,
-              style: TextStyle(fontSize: 16, color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                fontSize: 13,
+                color: theme.colorScheme.onSurface,
+                fontWeight: FontWeight.w700,
+              ),
             ),
-            if (TagTranslationsService.translate(text) case final transltedText?)
+            if (TagTranslationsService.translate(text)
+                case final transltedText?)
               TextSpan(
                 text: ' #$transltedText',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.primary),
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: theme.colorScheme.secondary,
+                ),
               ),
           ],
         ),

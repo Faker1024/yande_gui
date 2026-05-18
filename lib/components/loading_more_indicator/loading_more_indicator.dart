@@ -16,7 +16,7 @@ class LoadingMoreIndicator extends StatelessWidget {
     this.fullScreenErrorCanRetry = false,
   });
 
-  static const textStyle = TextStyle(fontSize: 20);
+  static const textStyle = TextStyle(fontSize: 14, fontWeight: FontWeight.w600);
 
   @override
   Widget build(BuildContext context) {
@@ -26,18 +26,28 @@ class LoadingMoreIndicator extends StatelessWidget {
         widget = const SizedBox();
         break;
       case IndicatorStatus.loadingMoreBusying:
-        widget = const Center(child: Padding(padding: EdgeInsets.only(top: 10, bottom: 10), child: CupertinoActivityIndicator()));
+        widget = const Center(
+          child: Padding(
+            padding: EdgeInsets.only(top: 10, bottom: 10),
+            child: CupertinoActivityIndicator(),
+          ),
+        );
         break;
       case IndicatorStatus.fullScreenBusying:
         widget = const Center(child: CupertinoActivityIndicator());
         if (isSliver) {
           widget = SliverFillRemaining(child: widget);
         } else {
-          widget = CustomScrollView(slivers: <Widget>[SliverFillRemaining(child: widget)]);
+          widget = CustomScrollView(
+            slivers: <Widget>[SliverFillRemaining(child: widget)],
+          );
         }
         break;
       case IndicatorStatus.error:
-        widget = InkWell(onTap: () => errorRefresh(), child: const Center(child: Text('Load failed', style: textStyle)));
+        widget = InkWell(
+          onTap: () => errorRefresh(),
+          child: const Center(child: Text('Load failed', style: textStyle)),
+        );
         break;
       case IndicatorStatus.fullScreenError:
         widget = SizedBox.expand(
@@ -45,7 +55,12 @@ class LoadingMoreIndicator extends StatelessWidget {
               fullScreenErrorCanRetry
                   ? InkWell(
                     onTap: () => errorRefresh(),
-                    child: Center(child: Text('Load failed${fullScreenErrorCanRetry ? ', click to retry' : ''}', style: textStyle)),
+                    child: Center(
+                      child: Text(
+                        'Load failed${fullScreenErrorCanRetry ? ', click to retry' : ''}',
+                        style: textStyle,
+                      ),
+                    ),
                   )
                   : const Center(child: Text('Load failed', style: textStyle)),
         );
@@ -53,11 +68,18 @@ class LoadingMoreIndicator extends StatelessWidget {
         if (isSliver) {
           widget = SliverFillRemaining(child: widget);
         } else {
-          widget = CustomScrollView(slivers: <Widget>[SliverFillRemaining(child: widget)]);
+          widget = CustomScrollView(
+            slivers: <Widget>[SliverFillRemaining(child: widget)],
+          );
         }
         break;
       case IndicatorStatus.noMoreLoad:
-        widget = const Center(child: Padding(padding: EdgeInsets.only(top: 10, bottom: 10), child: Text('No more data', style: textStyle)));
+        widget = const Center(
+          child: Padding(
+            padding: EdgeInsets.only(top: 10, bottom: 10),
+            child: Text('No more data', style: textStyle),
+          ),
+        );
         // widget = const SizedBox();
         break;
       case IndicatorStatus.empty:
@@ -65,7 +87,9 @@ class LoadingMoreIndicator extends StatelessWidget {
         if (isSliver) {
           widget = SliverFillRemaining(child: widget);
         } else {
-          widget = CustomScrollView(slivers: <Widget>[SliverFillRemaining(child: widget)]);
+          widget = CustomScrollView(
+            slivers: <Widget>[SliverFillRemaining(child: widget)],
+          );
         }
         break;
     }

@@ -24,11 +24,16 @@ class IndexPage extends StatefulWidget {
 
 class _IndexPageState extends State<IndexPage> {
   Map<(IconData, String), WidgetBuilder> get _pages => {
-    (Icons.list_alt_outlined, i18n.postList.short): (context) => PostListPage(key: ValueKey(widget.language)),
-    (Icons.search_outlined, i18n.postSearch.title): (context) => PostSearchPage(key: ValueKey(widget.language)),
-    (Icons.cloud_download_outlined, i18n.downloads.title): (context) => DownloadsPage(key: ValueKey(widget.language)),
-    (Icons.info_outlined, i18n.about.title): (context) => AboutPage(key: ValueKey(widget.language)),
-    (Icons.settings, i18n.settings.title): (context) => SettingsPage(key: ValueKey(widget.language)),
+    (Icons.list_alt_outlined, i18n.postList.short):
+        (context) => PostListPage(key: ValueKey(widget.language)),
+    (Icons.search_outlined, i18n.postSearch.title):
+        (context) => PostSearchPage(key: ValueKey(widget.language)),
+    (Icons.cloud_download_outlined, i18n.downloads.title):
+        (context) => DownloadsPage(key: ValueKey(widget.language)),
+    (Icons.info_outlined, i18n.about.title):
+        (context) => AboutPage(key: ValueKey(widget.language)),
+    (Icons.settings, i18n.settings.title):
+        (context) => SettingsPage(key: ValueKey(widget.language)),
   };
 
   final controller = PageController();
@@ -77,30 +82,79 @@ class _IndexPageState extends State<IndexPage> {
 
   @override
   Widget build(BuildContext context) {
-    final isVertical = MediaQuery.of(context).size.width < MediaQuery.of(context).size.height;
+    final isVertical =
+        MediaQuery.of(context).size.width < MediaQuery.of(context).size.height;
+    final theme = Theme.of(context);
 
     return Scaffold(
       body: switch (_initialized) {
         false => const Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: [CircularProgressIndicator(), SizedBox(height: 16), Text('Initializing...')],
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Initializing...'),
+            ],
           ),
         ),
         true => Row(
           children: [
             if (!isVertical)
-              NavigationRail(
-                destinations: [for (final key in _pages.keys) NavigationRailDestination(icon: Icon(key.$1), label: Text(key.$2))],
-                labelType: NavigationRailLabelType.all,
-                selectedIndex: _selectedIndex,
-                onDestinationSelected: (index) {
-                  setState(() {
-                    _selectedIndex = index;
-                  });
-                },
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  border: Border(
+                    right: BorderSide(
+                      color: theme.colorScheme.outlineVariant.withAlpha(120),
+                    ),
+                  ),
+                ),
+                child: NavigationRail(
+                  minWidth: 92,
+                  groupAlignment: -0.75,
+                  leading: Padding(
+                    padding: const EdgeInsets.only(top: 16, bottom: 22),
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: SizedBox(
+                        width: 36,
+                        height: 36,
+                        child: Center(
+                          child: Text(
+                            'Y',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              color: theme.colorScheme.onPrimary,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  destinations: [
+                    for (final key in _pages.keys)
+                      NavigationRailDestination(
+                        icon: Icon(key.$1),
+                        label: Text(key.$2),
+                      ),
+                  ],
+                  labelType: NavigationRailLabelType.all,
+                  selectedIndex: _selectedIndex,
+                  onDestinationSelected: (index) {
+                    setState(() {
+                      _selectedIndex = index;
+                    });
+                  },
+                ),
               ),
-            Expanded(child: LazyIndexedStack(index: _selectedIndex, children: [for (final page in _pages.values) page(context)])),
+            Expanded(
+              child: LazyIndexedStack(
+                index: _selectedIndex,
+                children: [for (final page in _pages.values) page(context)],
+              ),
+            ),
           ],
         ),
       },
@@ -113,7 +167,10 @@ class _IndexPageState extends State<IndexPage> {
           },
           currentIndex: _selectedIndex,
           type: BottomNavigationBarType.fixed,
-          items: [for (final key in _pages.keys) BottomNavigationBarItem(icon: Icon(key.$1), label: key.$2)],
+          items: [
+            for (final key in _pages.keys)
+              BottomNavigationBarItem(icon: Icon(key.$1), label: key.$2),
+          ],
         ),
         false => null,
       },

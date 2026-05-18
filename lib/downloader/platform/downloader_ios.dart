@@ -4,6 +4,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:yande_gui/i18n.dart';
 import 'package:path/path.dart' as path;
+import 'package:yande_gui/services/download_history_service.dart';
 import 'package:yande_gui/services/settings_service.dart';
 
 import '../download_task.dart';
@@ -11,17 +12,26 @@ import '../downloader_platform.dart';
 import 'download_queue_manger.dart';
 
 class DownloaderIOS<T> extends DownloaderPlatform<T> {
-  final _downloadQueueManager = DownloadQueueManager(getMaxConcurrentDownloads: () => SettingsService.maxConcurrentDownloads);
+  final _downloadQueueManager = DownloadQueueManager(
+    getMaxConcurrentDownloads: () => SettingsService.maxConcurrentDownloads,
+  );
 
-  final MethodChannel _channel = MethodChannel('io.github.normalllll.yandegui/image_saver');
+  final MethodChannel _channel = MethodChannel(
+    'io.github.normalllll.yandegui/image_saver',
+  );
 
   Future<bool> saveImage(String filePath, String fileName) async {
-    final bool result = await _channel.invokeMethod('saveImage', {'filePath': filePath, 'fileName': fileName});
+    final bool result = await _channel.invokeMethod('saveImage', {
+      'filePath': filePath,
+      'fileName': fileName,
+    });
     return result;
   }
 
   Future<bool> existImage(String fileName, int fileSize) async {
-    final bool result = await _channel.invokeMethod('existImage', {'fileName': fileName});
+    final bool result = await _channel.invokeMethod('existImage', {
+      'fileName': fileName,
+    });
     return result;
   }
 
@@ -71,16 +81,40 @@ class DownloaderIOS<T> extends DownloaderPlatform<T> {
             task.emit(task.state.copyWith(status: DownloadStatus.busying));
             break;
           case DownloadEventProgress(:final value):
-            task.emit(task.state.copyWith(status: DownloadStatus.busying, progress: value));
+            task.emit(
+              task.state.copyWith(
+                status: DownloadStatus.busying,
+                progress: value,
+              ),
+            );
             break;
           case DownloadEventSuccess():
             await saveImage(filePath, task.fileName);
-            EasyLoading.showSuccess(i18n.downloads.messages.downloadCompletedWith(task.fileName));
+            DownloadHistoryService.record(
+              inner: task.inner,
+              fileName: task.fileName,
+              url: task.url,
+              status: DownloadHistoryStatus.completed,
+            );
+            EasyLoading.showSuccess(
+              i18n.downloads.messages.downloadCompletedWith(task.fileName),
+            );
             task.emit(task.state.copyWith(status: DownloadStatus.completed));
             break;
           case DownloadEventError(:final error):
-            EasyLoading.showError(i18n.downloads.messages.downloadFailedWith(task.fileName));
-            task.emit(task.state.copyWith(status: DownloadStatus.failed, error: error));
+            DownloadHistoryService.record(
+              inner: task.inner,
+              fileName: task.fileName,
+              url: task.url,
+              status: DownloadHistoryStatus.failed,
+              error: error,
+            );
+            EasyLoading.showError(
+              i18n.downloads.messages.downloadFailedWith(task.fileName),
+            );
+            task.emit(
+              task.state.copyWith(status: DownloadStatus.failed, error: error),
+            );
             break;
         }
       },

@@ -41,7 +41,11 @@ class _PostListPageState extends ConsumerState<PostListPage> {
     double refreshTriggerPullDistance,
     double refreshIndicatorExtent,
   ) {
-    final double percentageComplete = clampDouble(pulledExtent / refreshTriggerPullDistance, 0.0, 1.0);
+    final double percentageComplete = clampDouble(
+      pulledExtent / refreshTriggerPullDistance,
+      0.0,
+      1.0,
+    );
 
     // Place the indicator at the top of the sliver that opens up. We're using a
     // Stack/Positioned widget because the CupertinoActivityIndicator does some
@@ -53,13 +57,23 @@ class _PostListPageState extends ConsumerState<PostListPage> {
 
     return Center(
       child: Padding(
-        padding: EdgeInsets.only(top: needTopPadding ? MediaQuery.of(context).padding.top + 4 : 0),
-        child: _buildIndicatorForRefreshState(refreshState, _kActivityIndicatorRadius, percentageComplete),
+        padding: EdgeInsets.only(
+          top: needTopPadding ? MediaQuery.of(context).padding.top + 4 : 0,
+        ),
+        child: _buildIndicatorForRefreshState(
+          refreshState,
+          _kActivityIndicatorRadius,
+          percentageComplete,
+        ),
       ),
     );
   }
 
-  static Widget _buildIndicatorForRefreshState(RefreshIndicatorMode refreshState, double radius, double percentageComplete) {
+  static Widget _buildIndicatorForRefreshState(
+    RefreshIndicatorMode refreshState,
+    double radius,
+    double percentageComplete,
+  ) {
     switch (refreshState) {
       case RefreshIndicatorMode.drag:
         // While we're dragging, we draw individual ticks of the spinner while simultaneously
@@ -68,7 +82,10 @@ class _PostListPageState extends ConsumerState<PostListPage> {
         const Curve opacityCurve = Interval(0.0, 0.35, curve: Curves.easeInOut);
         return Opacity(
           opacity: opacityCurve.transform(percentageComplete),
-          child: CupertinoActivityIndicator.partiallyRevealed(radius: radius, progress: percentageComplete),
+          child: CupertinoActivityIndicator.partiallyRevealed(
+            radius: radius,
+            progress: percentageComplete,
+          ),
         );
       case RefreshIndicatorMode.armed:
       case RefreshIndicatorMode.refresh:
@@ -86,17 +103,20 @@ class _PostListPageState extends ConsumerState<PostListPage> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(provider);
-    double screenWidth = MediaQuery.of(context).size.width;
+    final theme = Theme.of(context);
+    final screenWidth = MediaQuery.of(context).size.width;
 
-    int targetWidth = 180;
+    final targetWidth = isDesktop ? 220 : 160;
 
-    int columnsMax = screenWidth ~/ targetWidth;
+    final columnsMax = (screenWidth ~/ targetWidth).clamp(1, 12).toInt();
 
     return AutoScaffold(
       topSafeArea: false,
       builder: (context, horizontal) {
         return LoadingMoreCustomScrollView(
-          physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+          physics: const BouncingScrollPhysics(
+            parent: AlwaysScrollableScrollPhysics(),
+          ),
           slivers: [
             if (widget.tags != null)
               SliverAppBar(
@@ -104,10 +124,21 @@ class _PostListPageState extends ConsumerState<PostListPage> {
                 snap: isMobile,
                 pinned: isDesktop && widget.tags != null,
                 scrolledUnderElevation: 0,
+                surfaceTintColor: Colors.transparent,
+                backgroundColor: theme.scaffoldBackgroundColor,
                 title: switch (widget.tags) {
-                  final tags? => Text(i18n.postList.titleWithTags(tags.join(' '))),
+                  final tags? => Text(
+                    i18n.postList.titleWithTags(tags.join(' ')),
+                  ),
                   _ => Text(i18n.postList.title),
                 },
+                bottom: PreferredSize(
+                  preferredSize: const Size.fromHeight(1),
+                  child: Divider(
+                    color: theme.colorScheme.outlineVariant.withAlpha(120),
+                    height: 1,
+                  ),
+                ),
               ),
             CupertinoSliverRefreshControl(
               onRefresh: () async {
@@ -116,92 +147,138 @@ class _PostListPageState extends ConsumerState<PostListPage> {
               refreshIndicatorExtent: 25,
               builder: buildRefreshIndicator,
             ),
-            if (needTopPadding) SliverToBoxAdapter(child: SizedBox(height: MediaQuery.of(context).padding.top)),
+            if (needTopPadding)
+              SliverToBoxAdapter(
+                child: SizedBox(height: MediaQuery.of(context).padding.top),
+              ),
             LoadingMoreSliverList(
               SliverListConfig(
-                extendedListDelegate: SliverWaterfallFlowDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: SettingsService.waterfallColumns ?? columnsMax,
-                ),
-                itemBuilder: (BuildContext context, item, int index) {
-                  return GestureDetector(
-                    onTap: () {
-                      Navigator.of(context).push(MaterialPageRoute(builder: (context) => PostDetailPage(post: item)));
-                    },
-                    onLongPress: () {
-                      HapticFeedback.mediumImpact();
-
-                      Downloader.instance.add(item);
-                    },
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        const padding = 4;
-                        final width = constraints.maxWidth - padding * 2;
-                        final height = (item.height * width / item.width) - padding * 2;
-                        return Padding(
-                          padding: const EdgeInsets.all(4),
-                          child: Stack(
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(6),
-                                child: YandeImage(
-                                  item.previewUrl,
-                                  width: width,
-                                  height: height,
-                                  imageBuilder: (child) {
-                                    return Hero(tag: item.id, child: child).animate().fade(duration: 250.ms);
-                                  },
-                                ),
-                              ),
-                              if (item.parentId != null)
-                                Positioned(
-                                  right: 0,
-                                  top: 0,
-                                  child: Container(
-                                    padding: const EdgeInsets.all(4),
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.only(bottomLeft: Radius.circular(6)),
-                                      color: Colors.black.withAlpha(150),
-                                    ),
-                                    child: const Icon(Icons.more_outlined, color: Colors.white),
-                                  ),
-                                )
-                              else if (item.hasChildren)
-                                Positioned(
-                                  right: 0,
-                                  top: 0,
-                                  child: Container(
-                                    padding: const EdgeInsets.all(4),
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.only(bottomLeft: Radius.circular(6)),
-                                      color: Colors.black.withAlpha(150),
-                                    ),
-                                    child: const Icon(Icons.more_horiz, color: Colors.white),
-                                  ),
-                                ),
-                              Positioned(
-                                right: 0,
-                                bottom: 0,
-                                child: Container(
-                                  padding: const EdgeInsets.all(4),
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.only(topLeft: Radius.circular(6)),
-                                    color: Colors.black.withAlpha(150),
-                                  ),
-                                  child: Text(
-                                    '${Resolution.match(item.width * item.height).title} ${item.width} x ${item.height}',
-                                    style: const TextStyle(color: Colors.white),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
+                extendedListDelegate:
+                    SliverWaterfallFlowDelegateWithFixedCrossAxisCount(
+                      crossAxisCount:
+                          SettingsService.waterfallColumns ?? columnsMax,
                     ),
+                itemBuilder: (BuildContext context, item, int index) {
+                  return LayoutBuilder(
+                    builder: (context, constraints) {
+                      const padding = 5.0;
+                      final width = constraints.maxWidth - padding * 2;
+                      final height =
+                          (item.height * width / item.width) - padding * 2;
+                      final lightOverlay = theme.brightness == Brightness.light;
+                      final overlayColor =
+                          lightOverlay
+                              ? Colors.white.withAlpha(225)
+                              : const Color(0xFF251C27).withAlpha(200);
+                      final overlayTextColor =
+                          lightOverlay
+                              ? theme.colorScheme.onSurface
+                              : Colors.white;
+
+                      return Padding(
+                        padding: const EdgeInsets.all(padding),
+                        child: Material(
+                          color: Colors.transparent,
+                          borderRadius: BorderRadius.circular(8),
+                          clipBehavior: Clip.antiAlias,
+                          child: InkWell(
+                            onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder:
+                                      (context) => PostDetailPage(post: item),
+                                ),
+                              );
+                            },
+                            onLongPress: () {
+                              HapticFeedback.mediumImpact();
+                              Downloader.instance.add(item);
+                            },
+                            child: Stack(
+                              children: [
+                                DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    color: theme.cardColor,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: theme.colorScheme.outlineVariant
+                                          .withAlpha(120),
+                                    ),
+                                  ),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: YandeImage(
+                                      item.previewUrl,
+                                      width: width,
+                                      height: height,
+                                      imageBuilder: (child) {
+                                        return Hero(
+                                          tag: item.id,
+                                          child: child,
+                                        ).animate().fade(duration: 180.ms);
+                                      },
+                                    ),
+                                  ),
+                                ),
+                                if (item.parentId != null || item.hasChildren)
+                                  Positioned(
+                                    right: 7,
+                                    top: 7,
+                                    child: DecoratedBox(
+                                      decoration: BoxDecoration(
+                                        color: overlayColor,
+                                        borderRadius: BorderRadius.circular(
+                                          999,
+                                        ),
+                                      ),
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(5),
+                                        child: Icon(
+                                          item.parentId != null
+                                              ? Icons.more_outlined
+                                              : Icons.more_horiz,
+                                          color: overlayTextColor,
+                                          size: 18,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                Positioned(
+                                  right: 7,
+                                  bottom: 7,
+                                  child: DecoratedBox(
+                                    decoration: BoxDecoration(
+                                      color: overlayColor,
+                                      borderRadius: BorderRadius.circular(999),
+                                    ),
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 4,
+                                      ),
+                                      child: Text(
+                                        '${Resolution.match(item.width * item.height).title} ${item.width} x ${item.height}',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 11,
+                                        ).copyWith(color: overlayTextColor),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
                   );
                 },
                 sourceList: state.source,
-                padding: EdgeInsets.zero,
+                padding: EdgeInsets.symmetric(
+                  horizontal: horizontal ? 10 : 6,
+                  vertical: 8,
+                ),
                 indicatorBuilder:
                     (context, status) => LoadingMoreIndicator(
                       status: status,

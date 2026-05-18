@@ -7,6 +7,7 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:yande_gui/global.dart';
 import 'package:yande_gui/i18n.dart';
 import 'package:yande_gui/services/settings_service.dart';
+import 'package:yande_gui/ui/app_ui.dart';
 import 'package:yande_gui/widgets/auto_scaffold/auto_scaffold.dart';
 import 'package:path/path.dart' as path;
 
@@ -18,16 +19,17 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  Widget buildItem({required Widget title, Widget? subtitle, Widget? leading, Function()? onTap}) {
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      child: ListTile(
-        leading: leading,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        title: title,
-        subtitle: subtitle,
-        onTap: onTap,
-      ),
+  Widget buildItem({
+    required Widget title,
+    Widget? subtitle,
+    Widget? leading,
+    Function()? onTap,
+  }) {
+    return AppPanel(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+      padding: EdgeInsets.zero,
+      onTap: onTap,
+      child: ListTile(leading: leading, title: title, subtitle: subtitle),
     );
   }
 
@@ -236,7 +238,9 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   void _downloadPathDialog() {
-    final textController = TextEditingController(text: SettingsService.downloadPath);
+    final textController = TextEditingController(
+      text: SettingsService.downloadPath,
+    );
     showCupertinoDialog(
       context: context,
       barrierDismissible: true,
@@ -250,18 +254,27 @@ class _SettingsPageState extends State<SettingsPage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  TextField(controller: textController, decoration: const InputDecoration(hintText: 'Platform Default')),
+                  TextField(
+                    controller: textController,
+                    decoration: const InputDecoration(
+                      hintText: 'Platform Default',
+                    ),
+                  ),
                   const SizedBox(height: 10),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       ElevatedButton(
                         onPressed: () {
-                          FilePicker.platform.getDirectoryPath(dialogTitle: 'Select a directory').then((value) {
-                            if (value != null) {
-                              textController.text = value;
-                            }
-                          });
+                          FilePicker.platform
+                              .getDirectoryPath(
+                                dialogTitle: 'Select a directory',
+                              )
+                              .then((value) {
+                                if (value != null) {
+                                  textController.text = value;
+                                }
+                              });
                         },
                         child: const Text('Pick'),
                       ),
@@ -333,7 +346,8 @@ class _SettingsPageState extends State<SettingsPage> {
       context: context,
       barrierDismissible: true,
       builder: (context) {
-        double currentSliderValue = ((SettingsService.waterfallColumns ?? 0)).toDouble();
+        double currentSliderValue =
+            ((SettingsService.waterfallColumns ?? 0)).toDouble();
 
         if (currentSliderValue != 0) {
           currentSliderValue -= 1;
@@ -378,7 +392,10 @@ class _SettingsPageState extends State<SettingsPage> {
                 CupertinoDialogAction(
                   child: Text(i18n.generic.confirm),
                   onPressed: () {
-                    SettingsService.waterfallColumns = currentSliderValue == 0 ? null : currentSliderValue.toInt() + 1;
+                    SettingsService.waterfallColumns =
+                        currentSliderValue == 0
+                            ? null
+                            : currentSliderValue.toInt() + 1;
                     rootUpdateController.add(null);
                     Navigator.of(context).pop();
                   },
@@ -431,7 +448,8 @@ class _SettingsPageState extends State<SettingsPage> {
                 CupertinoDialogAction(
                   child: Text(i18n.generic.confirm),
                   onPressed: () {
-                    SettingsService.maxConcurrentDownloads = currentSliderValue.toInt();
+                    SettingsService.maxConcurrentDownloads =
+                        currentSliderValue.toInt();
                     rootUpdateController.add(null);
                     Navigator.of(context).pop();
                   },
@@ -484,7 +502,8 @@ class _SettingsPageState extends State<SettingsPage> {
                 CupertinoDialogAction(
                   child: Text(i18n.generic.confirm),
                   onPressed: () {
-                    SettingsService.maxSegmentsPerTask = currentSliderValue.toInt();
+                    SettingsService.maxSegmentsPerTask =
+                        currentSliderValue.toInt();
                     rootUpdateController.add(null);
                     Navigator.of(context).pop();
                   },
@@ -503,6 +522,7 @@ class _SettingsPageState extends State<SettingsPage> {
       verticalOnlyTitleWidget: Text(i18n.settings.title),
       builder: (context, horizontal) {
         return ListView(
+          padding: const EdgeInsets.symmetric(vertical: 8),
           children: [
             buildItem(
               title: Text(i18n.settings.language),
@@ -526,7 +546,11 @@ class _SettingsPageState extends State<SettingsPage> {
             buildItem(
               title: Text(i18n.settings.prefetchDns),
               leading: const Icon(Icons.network_check_outlined),
-              subtitle: Text(SettingsService.prefetchDns ? i18n.generic.enabled : i18n.generic.disabled),
+              subtitle: Text(
+                SettingsService.prefetchDns
+                    ? i18n.generic.enabled
+                    : i18n.generic.disabled,
+              ),
               onTap: () {
                 _dnsPrefetchDialog();
               },
@@ -534,7 +558,9 @@ class _SettingsPageState extends State<SettingsPage> {
             buildItem(
               title: Text(i18n.settings.columnsPerRow),
               leading: const Icon(Icons.view_column_outlined),
-              subtitle: Text(waterfallColumns(SettingsService.waterfallColumns)),
+              subtitle: Text(
+                waterfallColumns(SettingsService.waterfallColumns),
+              ),
               onTap: () {
                 _columnsPerRowDialog();
               },
@@ -542,7 +568,9 @@ class _SettingsPageState extends State<SettingsPage> {
             buildItem(
               title: Text(i18n.settings.maxConcurrentDownloads),
               leading: const Icon(Icons.grading_outlined),
-              subtitle: Text(maxActiveDownloadTasks(SettingsService.maxConcurrentDownloads)),
+              subtitle: Text(
+                maxActiveDownloadTasks(SettingsService.maxConcurrentDownloads),
+              ),
               onTap: () {
                 _maxConcurrentDownloadsDialog();
               },
@@ -550,7 +578,11 @@ class _SettingsPageState extends State<SettingsPage> {
             buildItem(
               title: Text(i18n.settings.maxSegmentsPerTask),
               leading: const Icon(Icons.segment_outlined),
-              subtitle: Text(maxParallelSegmentsPerDownloadTask(SettingsService.maxSegmentsPerTask)),
+              subtitle: Text(
+                maxParallelSegmentsPerDownloadTask(
+                  SettingsService.maxSegmentsPerTask,
+                ),
+              ),
               onTap: () {
                 _maxSegmentsPerTaskDialog();
               },
@@ -559,7 +591,9 @@ class _SettingsPageState extends State<SettingsPage> {
               buildItem(
                 title: Text(i18n.settings.downloadDirectory),
                 leading: const Icon(Icons.save_alt_outlined),
-                subtitle: Text(SettingsService.downloadPath ?? i18n.settings.platformDefault),
+                subtitle: Text(
+                  SettingsService.downloadPath ?? i18n.settings.platformDefault,
+                ),
                 onTap: () {
                   _downloadPathDialog();
                 },

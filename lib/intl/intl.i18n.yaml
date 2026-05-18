@@ -29,6 +29,7 @@ postDetail:
   height: Height
   score: Score
   size: Size
+  tags: Tags
   parent: Parent ID
   hasChildren: Has child posts
   similarPosts: Similar posts
@@ -37,12 +38,22 @@ postDetail:
 
 postSearch:
   title: Search
+  history: Search History
+  clearHistory: Clear Search History
 
 imageZoom:
   title: Zoom Image
 
 downloads:
   title: Downloads
+  activeTasks: Current Downloads
+  history: Download History
+  clearHistory: Clear Download History
+  completed: Completed
+  failed: Failed
+  noHistory: No download history.
+  savedAt(String time): "Saved at $time"
+  failedAt(String time): "Failed at $time"
   messages:
     storagePermanentlyDenied: You have permanently denied storage permissions.\nPlease manually enable storage permissions in settings.  # Android
     storageDenied: You have denied storage permissions.  # Android

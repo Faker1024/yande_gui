@@ -29,6 +29,7 @@ postDetail:
   height: 高さ
   score: スコア
   size: サイズ
+  tags: タグ
   parent: 親ID
   hasChildren: 子投稿があります
   similarPosts: 類似投稿
@@ -37,12 +38,22 @@ postDetail:
 
 postSearch:
   title: 検索
+  history: 検索履歴
+  clearHistory: 検索履歴をクリア
 
 imageZoom:
   title: 画像をズーム
 
 downloads:
   title: ダウンロード
+  activeTasks: 現在のダウンロード
+  history: ダウンロード履歴
+  clearHistory: ダウンロード履歴をクリア
+  completed: 完了
+  failed: 失敗
+  noHistory: ダウンロード履歴はありません。
+  savedAt(String time): "$time に保存"
+  failedAt(String time): "$time に失敗"
   messages:
     storagePermanentlyDenied: ストレージのアクセス許可が永久に拒否されました。\n設定で手動でストレージのアクセス許可を有効にしてください。  # Android
     storageDenied: ストレージのアクセス許可が拒否されました。  # Android

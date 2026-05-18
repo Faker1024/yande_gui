@@ -1,7 +1,10 @@
 import 'dart:io';
+import 'dart:developer';
+
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:yande_gui/i18n.dart';
+import 'package:yande_gui/services/download_history_service.dart';
 import 'package:yande_gui/services/settings_service.dart';
 import 'package:path/path.dart' as path;
 
@@ -10,7 +13,9 @@ import '../downloader_platform.dart';
 import 'download_queue_manger.dart';
 
 class DownloaderDesktop<T> extends DownloaderPlatform<T> {
-  final _downloadQueueManager = DownloadQueueManager(getMaxConcurrentDownloads: () => SettingsService.maxConcurrentDownloads);
+  final _downloadQueueManager = DownloadQueueManager(
+    getMaxConcurrentDownloads: () => SettingsService.maxConcurrentDownloads,
+  );
 
   Future<void> _moveFile(String sourcePath, String targetPath) async {
     final sourceFile = File(sourcePath);
@@ -73,7 +78,12 @@ class DownloaderDesktop<T> extends DownloaderPlatform<T> {
             task.emit(task.state.copyWith(status: DownloadStatus.busying));
             break;
           case DownloadEventProgress(:final value):
-            task.emit(task.state.copyWith(status: DownloadStatus.busying, progress: value));
+            task.emit(
+              task.state.copyWith(
+                status: DownloadStatus.busying,
+                progress: value,
+              ),
+            );
             break;
           case DownloadEventSuccess():
             final downloadDir = await getDownloadsDirectory();
@@ -81,17 +91,41 @@ class DownloaderDesktop<T> extends DownloaderPlatform<T> {
             if (SettingsService.downloadPath case String downloadPath) {
               targetPath = path.join(downloadPath, task.fileName);
             } else {
-              targetPath = path.join(downloadDir!.path, 'YandeGUI', task.fileName);
+              targetPath = path.join(
+                downloadDir!.path,
+                'YandeGUI',
+                task.fileName,
+              );
             }
             await _moveFile(filePath, targetPath);
+            DownloadHistoryService.record(
+              inner: task.inner,
+              fileName: task.fileName,
+              url: task.url,
+              status: DownloadHistoryStatus.completed,
+              filePath: targetPath,
+            );
 
-            EasyLoading.showSuccess(i18n.downloads.messages.downloadCompletedWith(task.fileName));
+            EasyLoading.showSuccess(
+              i18n.downloads.messages.downloadCompletedWith(task.fileName),
+            );
             task.emit(task.state.copyWith(status: DownloadStatus.completed));
             break;
           case DownloadEventError(:final error):
-            print('download error:$error');
-            EasyLoading.showError(i18n.downloads.messages.downloadFailedWith(task.fileName));
-            task.emit(task.state.copyWith(status: DownloadStatus.failed, error: error));
+            log('download error:$error');
+            DownloadHistoryService.record(
+              inner: task.inner,
+              fileName: task.fileName,
+              url: task.url,
+              status: DownloadHistoryStatus.failed,
+              error: error,
+            );
+            EasyLoading.showError(
+              i18n.downloads.messages.downloadFailedWith(task.fileName),
+            );
+            task.emit(
+              task.state.copyWith(status: DownloadStatus.failed, error: error),
+            );
             break;
         }
       },

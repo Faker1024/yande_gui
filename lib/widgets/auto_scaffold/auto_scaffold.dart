@@ -25,14 +25,35 @@ class AutoScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isVertical = MediaQuery.of(context).size.width < MediaQuery.of(context).size.height;
+    final isVertical =
+        MediaQuery.of(context).size.width < MediaQuery.of(context).size.height;
 
-    final Widget child = builder?.call(context, !isVertical) ?? const SizedBox();
+    final Widget child =
+        builder?.call(context, !isVertical) ?? const SizedBox();
 
-    final Widget? title = titleWidget ?? (isVertical ? verticalOnlyTitleWidget : horizontalOnlyTitleWidget);
+    final Widget? title =
+        titleWidget ??
+        (isVertical ? verticalOnlyTitleWidget : horizontalOnlyTitleWidget);
+    final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: title != null ? AppBar(title: title, scrolledUnderElevation: 0) : null,
+      appBar:
+          title != null
+              ? AppBar(
+                title: DefaultTextStyle.merge(
+                  style: theme.textTheme.titleLarge,
+                  child: title,
+                ),
+                scrolledUnderElevation: 0,
+                bottom: PreferredSize(
+                  preferredSize: const Size.fromHeight(1),
+                  child: Divider(
+                    color: theme.colorScheme.outlineVariant.withAlpha(120),
+                    height: 1,
+                  ),
+                ),
+              )
+              : null,
       resizeToAvoidBottomInset: true,
       body: SafeArea(top: topSafeArea ?? true, child: child),
       floatingActionButton: floatingActionButton,
