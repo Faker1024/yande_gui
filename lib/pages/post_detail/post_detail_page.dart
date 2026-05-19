@@ -258,7 +258,11 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
             MaterialPageRoute(
               builder:
                   (context) => ImageZoomPage(
-                    url: post.fileUrl ?? post.jpegUrl ?? post.previewUrl,
+                    url:
+                        post.fileUrl ??
+                        post.jpegUrl ??
+                        post.sampleUrl ??
+                        post.previewUrl,
                     width: post.width.toDouble(),
                     height: post.height.toDouble(),
                   ),

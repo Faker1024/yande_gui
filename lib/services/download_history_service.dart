@@ -1,3 +1,4 @@
+import 'package:yande_gui/services/booru_site_service.dart';
 import 'package:yande_gui/services/settings_service.dart';
 import 'package:yande_gui/src/rust/yande/model/post.dart';
 
@@ -5,6 +6,7 @@ enum DownloadHistoryStatus { completed, failed }
 
 class DownloadHistoryItem {
   final Post post;
+  final String siteKey;
   final String fileName;
   final String url;
   final DownloadHistoryStatus status;
@@ -14,6 +16,7 @@ class DownloadHistoryItem {
 
   const DownloadHistoryItem({
     required this.post,
+    required this.siteKey,
     required this.fileName,
     required this.url,
     required this.status,
@@ -22,11 +25,12 @@ class DownloadHistoryItem {
     this.error,
   });
 
-  String get key => '${post.id}:$fileName';
+  String get key => '$siteKey:${post.id}:$fileName';
 
   Map<String, dynamic> toJson() {
     return {
       'key': key,
+      'siteKey': siteKey,
       'fileName': fileName,
       'url': url,
       'status': status.name,
@@ -44,6 +48,10 @@ class DownloadHistoryItem {
     try {
       return DownloadHistoryItem(
         post: _postFromJson(Map<String, dynamic>.from(postJson)),
+        siteKey:
+            json['siteKey'] as String? ??
+            BooruSite.fromUrl(json['url'] as String? ?? '')?.key ??
+            BooruSite.yande.key,
         fileName: json['fileName'] as String? ?? '',
         url: json['url'] as String? ?? '',
         status: DownloadHistoryStatus.values.firstWhere(
@@ -67,6 +75,7 @@ class DownloadHistoryService {
     return SettingsService.downloadHistory
         .map(DownloadHistoryItem.fromJson)
         .whereType<DownloadHistoryItem>()
+        .where((item) => item.siteKey == SettingsService.siteKey)
         .toList(growable: false);
   }
 
@@ -79,10 +88,15 @@ class DownloadHistoryService {
     String? error,
   }) {
     if (inner is! Post) return;
+    final siteKey =
+        BooruSite.fromUrl(url)?.key ??
+        BooruSite.fromUrl(inner.previewUrl)?.key ??
+        SettingsService.siteKey;
 
     SettingsService.upsertDownloadHistory(
       DownloadHistoryItem(
         post: inner,
+        siteKey: siteKey,
         fileName: fileName,
         url: url,
         status: status,
@@ -98,7 +112,17 @@ class DownloadHistoryService {
   }
 
   static void clear() {
-    SettingsService.clearDownloadHistory();
+    SettingsService.replaceDownloadHistory(
+      SettingsService.downloadHistory
+          .where((item) {
+            final siteKey =
+                item['siteKey'] as String? ??
+                BooruSite.fromUrl(item['url'] as String? ?? '')?.key ??
+                BooruSite.yande.key;
+            return siteKey != SettingsService.siteKey;
+          })
+          .toList(growable: false),
+    );
   }
 }
 

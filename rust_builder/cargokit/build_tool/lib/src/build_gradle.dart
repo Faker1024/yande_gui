@@ -33,6 +33,15 @@ class BuildGradle {
     final provider =
         ArtifactProvider(environment: environment, userOptions: userOptions);
     final artifacts = await provider.getArtifacts(targets);
+    final targetAndroidAbis = targets.map((target) => target.android).toSet();
+    final outputRoot = Directory(Environment.outputDir);
+    if (outputRoot.existsSync()) {
+      for (final child in outputRoot.listSync().whereType<Directory>()) {
+        if (!targetAndroidAbis.contains(path.basename(child.path))) {
+          child.deleteSync(recursive: true);
+        }
+      }
+    }
 
     for (final target in targets) {
       final libs = artifacts[target]!;

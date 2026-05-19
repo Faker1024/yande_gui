@@ -10,6 +10,7 @@ import 'package:yande_gui/downloader/downloader.dart';
 import 'package:yande_gui/i18n.dart';
 import 'package:yande_gui/pages/image_zoom_page/image_zoom_page.dart';
 import 'package:yande_gui/pages/post_detail/logic.dart';
+import 'package:yande_gui/services/settings_service.dart';
 import 'package:yande_gui/src/rust/yande/model/post.dart';
 import 'package:yande_gui/ui/app_ui.dart';
 
@@ -41,16 +42,20 @@ class _PostSimilarWidgetState extends ConsumerState<PostSimilarWidget> {
       calcHeight = min(widget.maxHeight, post.height.toDouble());
       calcWidth = calcHeight * post.width / post.height;
     }
+    final imageUrl =
+        post.fileUrl ?? post.jpegUrl ?? post.sampleUrl ?? post.previewUrl;
     return GestureDetector(
       onTap: () {
-        if (post.fileUrl != null) {
-          EasyLoading.showError('This item is not ');
+        final uri = Uri.tryParse(imageUrl.trim());
+        if (uri == null || (uri.scheme != 'http' && uri.scheme != 'https')) {
+          EasyLoading.showError('No image URL.');
+          return;
         }
         Navigator.of(context).push(
           MaterialPageRoute(
             builder:
                 (context) => ImageZoomPage(
-                  url: post.fileUrl ?? post.jpegUrl ?? post.previewUrl,
+                  url: imageUrl,
                   width: post.width.toDouble(),
                   height: post.height.toDouble(),
                 ),
@@ -81,7 +86,10 @@ class _PostSimilarWidgetState extends ConsumerState<PostSimilarWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final provider = getSimilarProvider(id: widget.id);
+    final provider = getSimilarProvider(
+      siteKey: SettingsService.siteKey,
+      id: widget.id,
+    );
 
     return switch (ref.watch(provider)) {
       AsyncData(:final value) => AppPanel(

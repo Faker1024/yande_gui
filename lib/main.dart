@@ -5,8 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:yande_gui/global.dart';
 import 'package:yande_gui/i18n.dart';
+import 'package:yande_gui/services/booru_site_service.dart';
 import 'package:yande_gui/services/tag_translations_service.dart';
-import 'package:yande_gui/src/rust/api/yande_client.dart';
 import 'package:yande_gui/src/rust/frb_generated.dart';
 import 'package:yande_gui/themes.dart';
 
@@ -23,9 +23,7 @@ Future<void> main() async {
   await SettingsService.initialize();
   await TagTranslationsService.loadAll();
   TagTranslationsService.update(SettingsService.language);
-  if (!SettingsService.prefetchDns) {
-    setYandeClient(YandeClient(ips: null, forLargeFile: false));
-  }
+  await BooruSiteService.configureClients(fetchDns: false);
 
   Downloader.instance.ensureInitialized();
   runApp(const ProviderScope(child: MyApp()));
@@ -43,11 +41,16 @@ class MyApp extends ConsumerWidget {
       stream: rootUpdateController.stream,
       builder: (BuildContext context, AsyncSnapshot<void> snapshot) {
         final locale = I18n.getLocale(SettingsService.language);
-        TagTranslationsService.update(SettingsService.language ?? I18n.getSystemLocaleIndex());
+        TagTranslationsService.update(
+          SettingsService.language ?? I18n.getSystemLocaleIndex(),
+        );
         I18n.update(locale);
         return MaterialApp(
           title: 'Yande GUI',
-          home: IndexPage(language: SettingsService.language),
+          home: IndexPage(
+            language: SettingsService.language,
+            siteKey: SettingsService.siteKey,
+          ),
           darkTheme: darkTheme(darkPrimaryColor),
           theme: lightTheme(lightPrimaryColor),
           themeMode: switch (SettingsService.themeMode) {
@@ -65,11 +68,16 @@ class MyApp extends ConsumerWidget {
           supportedLocales: const [
             Locale('en'),
             Locale('ja'),
-            Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant', countryCode: 'TW'),
+            Locale.fromSubtags(
+              languageCode: 'zh',
+              scriptCode: 'Hant',
+              countryCode: 'TW',
+            ),
           ],
           localeResolutionCallback: (locale, supportedLocales) {
             for (final supportedLocale in supportedLocales) {
-              if (supportedLocale.languageCode == locale?.languageCode && supportedLocale.countryCode == locale?.countryCode) {
+              if (supportedLocale.languageCode == locale?.languageCode &&
+                  supportedLocale.countryCode == locale?.countryCode) {
                 return supportedLocale;
               }
             }

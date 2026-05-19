@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -36,19 +38,39 @@ android {
         }
     }
 
+    val keystoreProperties = Properties()
+    val keystorePropertiesFile = rootProject.file("key.properties")
+    if (keystorePropertiesFile.exists()) {
+        keystorePropertiesFile.inputStream().use { keystoreProperties.load(it) }
+    }
+
+    fun signingProperty(name: String): String? {
+        return (keystoreProperties.getProperty(name) ?: System.getenv(name))
+            ?: if (project.hasProperty(name)) project.property(name).toString() else null
+    }
+
     signingConfigs {
         create("release") {
-            if (project.hasProperty("KEYSTORE_FILE") &&
-                project.hasProperty("KEYSTORE_PASSWORD") &&
-                project.hasProperty("KEY_ALIAS")
+            val keystoreFile = signingProperty("KEYSTORE_FILE")
+            val keystorePassword = signingProperty("KEYSTORE_PASSWORD")
+            val alias = signingProperty("KEY_ALIAS")
+            val keyPassword = signingProperty("KEY_PASSWORD")
+
+            if (
+                keystoreFile.isNullOrBlank() ||
+                    keystorePassword.isNullOrBlank() ||
+                    alias.isNullOrBlank() ||
+                    keyPassword.isNullOrBlank()
             ) {
-                storeFile = file(project.property("KEYSTORE_FILE") as String)
-                storePassword = project.property("KEYSTORE_PASSWORD") as String
-                keyAlias = project.property("KEY_ALIAS") as String
-                keyPassword = project.property("KEY_PASSWORD") as String
-            } else {
-                throw GradleException("Missing required signing properties. Make sure to provide MY_KEYSTORE_FILE, MY_KEYSTORE_PASSWORD, and MY_KEY_ALIAS.")
+                throw GradleException(
+                    "Missing release signing config. Create android/key.properties or set KEYSTORE_FILE, KEYSTORE_PASSWORD, KEY_ALIAS, and KEY_PASSWORD.",
+                )
             }
+
+            storeFile = file(keystoreFile)
+            storePassword = keystorePassword
+            keyAlias = alias
+            this.keyPassword = keyPassword
         }
     }
 
@@ -64,14 +86,6 @@ android {
         }
     }
 
-    splits {
-        abi {
-            isEnable = true
-            reset()
-            include("armeabi-v7a", "arm64-v8a", "x86_64")
-            isUniversalApk = true
-        }
-    }
 }
 
 flutter {

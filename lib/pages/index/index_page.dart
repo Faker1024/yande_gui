@@ -1,22 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:yande_gui/global.dart';
 import 'package:yande_gui/i18n.dart';
 import 'package:yande_gui/pages/about/about_page.dart';
 import 'package:yande_gui/pages/downloads/downloads_page.dart';
+import 'package:yande_gui/pages/post_list/logic.dart';
 import 'package:yande_gui/pages/post_list/post_list_page.dart';
 import 'package:yande_gui/pages/post_search/post_search_page.dart';
 import 'package:yande_gui/pages/settings/settings_page.dart';
-import 'package:yande_gui/services/dns_service.dart';
+import 'package:yande_gui/services/booru_site_service.dart';
 import 'package:yande_gui/services/settings_service.dart';
 import 'package:yande_gui/services/updater_service.dart';
-import 'package:yande_gui/src/rust/api/yande_client.dart';
 import 'package:yande_gui/widgets/lazy_indexed_stack/lazy_indexed_stack.dart';
 
 class IndexPage extends StatefulWidget {
   final int? language;
+  final String siteKey;
 
-  const IndexPage({super.key, required this.language});
+  const IndexPage({super.key, required this.language, required this.siteKey});
 
   @override
   State<IndexPage> createState() => _IndexPageState();
@@ -25,38 +25,39 @@ class IndexPage extends StatefulWidget {
 class _IndexPageState extends State<IndexPage> {
   Map<(IconData, String), WidgetBuilder> get _pages => {
     (Icons.list_alt_outlined, i18n.postList.short):
-        (context) => PostListPage(key: ValueKey(widget.language)),
+        (context) =>
+            PostListPage(key: ValueKey((widget.language, widget.siteKey, 0))),
+    (Icons.local_fire_department_outlined, i18n.postList.popular):
+        (context) => PostListPage(
+          key: ValueKey((widget.language, widget.siteKey, 1)),
+          mode: PostListMode.popular,
+        ),
     (Icons.search_outlined, i18n.postSearch.title):
-        (context) => PostSearchPage(key: ValueKey(widget.language)),
+        (context) =>
+            PostSearchPage(key: ValueKey((widget.language, widget.siteKey))),
     (Icons.cloud_download_outlined, i18n.downloads.title):
-        (context) => DownloadsPage(key: ValueKey(widget.language)),
+        (context) =>
+            DownloadsPage(key: ValueKey((widget.language, widget.siteKey))),
     (Icons.info_outlined, i18n.about.title):
         (context) => AboutPage(key: ValueKey(widget.language)),
     (Icons.settings, i18n.settings.title):
-        (context) => SettingsPage(key: ValueKey(widget.language)),
+        (context) =>
+            SettingsPage(key: ValueKey((widget.language, widget.siteKey))),
   };
 
   final controller = PageController();
 
   int _selectedIndex = 0;
 
-  bool _initialized = !SettingsService.prefetchDns;
+  late bool _initialized =
+      !SettingsService.prefetchDns ||
+      BooruSite.fromKey(widget.siteKey) != BooruSite.yande;
 
   @override
   void initState() {
     Future.delayed(Duration.zero, () async {
       if (!_initialized) {
-        YandeClient instance;
-        try {
-          final List<String>? dns = await DnsService.fetchDns();
-          realIps = dns;
-          final ips = dns != null ? StringArray3(dns) : null;
-          instance = YandeClient(ips: ips, forLargeFile: false);
-        } catch (e) {
-          instance = YandeClient(ips: null, forLargeFile: false);
-        }
-
-        setYandeClient(instance);
+        await BooruSiteService.configureClients(fetchDns: true);
         setState(() {
           _initialized = true;
         });
@@ -85,6 +86,7 @@ class _IndexPageState extends State<IndexPage> {
     final isVertical =
         MediaQuery.of(context).size.width < MediaQuery.of(context).size.height;
     final theme = Theme.of(context);
+    final site = BooruSite.fromKey(widget.siteKey);
 
     return Scaffold(
       body: switch (_initialized) {
@@ -124,7 +126,7 @@ class _IndexPageState extends State<IndexPage> {
                         height: 36,
                         child: Center(
                           child: Text(
-                            'Y',
+                            site.displayName.substring(0, 1).toUpperCase(),
                             style: theme.textTheme.titleMedium?.copyWith(
                               color: theme.colorScheme.onPrimary,
                             ),

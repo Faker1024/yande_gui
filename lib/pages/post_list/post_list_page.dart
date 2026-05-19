@@ -13,6 +13,7 @@ import 'package:yande_gui/enums.dart';
 import 'package:yande_gui/global.dart';
 import 'package:yande_gui/i18n.dart';
 import 'package:yande_gui/pages/post_detail/post_detail_page.dart';
+import 'package:yande_gui/services/booru_site_service.dart';
 import 'package:yande_gui/services/settings_service.dart';
 import 'package:yande_gui/widgets/auto_scaffold/auto_scaffold.dart';
 
@@ -20,8 +21,9 @@ import 'logic.dart';
 
 class PostListPage extends ConsumerStatefulWidget {
   final List<String>? tags;
+  final PostListMode mode;
 
-  const PostListPage({super.key, this.tags});
+  const PostListPage({super.key, this.tags, this.mode = PostListMode.recent});
 
   @override
   ConsumerState createState() => _PostListPageState();
@@ -30,9 +32,159 @@ class PostListPage extends ConsumerStatefulWidget {
 const double _kActivityIndicatorRadius = 14.0;
 
 class _PostListPageState extends ConsumerState<PostListPage> {
-  late final provider = postListProvider(runtimeType, tags: widget.tags ?? []);
+  late final List<String> _providerTags = widget.tags ?? const <String>[];
 
-  bool get needTopPadding => widget.tags == null;
+  PopularScale _popularScale = PopularScale.day;
+  late DateTime _popularDate = _dateOnly(DateTime.now());
+
+  PostListProvider get provider => postListProvider(
+    runtimeType,
+    siteKey: SettingsService.siteKey,
+    tags: _providerTags,
+    mode: widget.mode,
+    popularScale: _popularScale,
+    popularDate: _popularDate,
+  );
+
+  bool get needTopPadding =>
+      widget.tags == null && widget.mode == PostListMode.recent;
+
+  bool get _isPopular => widget.mode == PostListMode.popular;
+
+  static DateTime _dateOnly(DateTime date) {
+    return DateTime(date.year, date.month, date.day);
+  }
+
+  static int _daysInMonth(int year, int month) {
+    return DateTime(year, month + 1, 0).day;
+  }
+
+  static DateTime _addMonths(DateTime date, int months) {
+    final target = DateTime(date.year, date.month + months);
+    final day =
+        date.day.clamp(1, _daysInMonth(target.year, target.month)).toInt();
+    return DateTime(target.year, target.month, day);
+  }
+
+  DateTime _shiftPopularDate(int direction) {
+    return switch (_popularScale) {
+      PopularScale.day => _popularDate.add(Duration(days: direction)),
+      PopularScale.week => _popularDate.add(Duration(days: 7 * direction)),
+      PopularScale.month => _addMonths(_popularDate, direction),
+      PopularScale.year => DateTime(
+        _popularDate.year + direction,
+        _popularDate.month,
+        _popularDate.day
+            .clamp(
+              1,
+              _daysInMonth(_popularDate.year + direction, _popularDate.month),
+            )
+            .toInt(),
+      ),
+    };
+  }
+
+  bool get _canShowNextPeriod {
+    final next = _dateOnly(_shiftPopularDate(1));
+    return !next.isAfter(_dateOnly(DateTime.now()));
+  }
+
+  void _setPopularDate(DateTime date) {
+    final today = _dateOnly(DateTime.now());
+    final normalized = _dateOnly(date);
+    setState(() {
+      _popularDate = normalized.isAfter(today) ? today : normalized;
+    });
+  }
+
+  Future<void> _pickPopularDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _popularDate,
+      firstDate: DateTime(2005),
+      lastDate: _dateOnly(DateTime.now()),
+    );
+    if (picked != null) {
+      _setPopularDate(picked);
+    }
+  }
+
+  String _popularDateText() {
+    return switch (_popularScale) {
+      PopularScale.day || PopularScale.week => _formatDate(_popularDate),
+      PopularScale.month =>
+        '${_popularDate.year.toString().padLeft(4, '0')}-${_popularDate.month.toString().padLeft(2, '0')}',
+      PopularScale.year => _popularDate.year.toString().padLeft(4, '0'),
+    };
+  }
+
+  String _formatDate(DateTime date) {
+    return [
+      date.year.toString().padLeft(4, '0'),
+      date.month.toString().padLeft(2, '0'),
+      date.day.toString().padLeft(2, '0'),
+    ].join('-');
+  }
+
+  String _scaleLabel(PopularScale scale) {
+    return switch (scale) {
+      PopularScale.day => i18n.postList.popularDay,
+      PopularScale.week => i18n.postList.popularWeek,
+      PopularScale.month => i18n.postList.popularMonth,
+      PopularScale.year => i18n.postList.popularYear,
+    };
+  }
+
+  Widget _buildPopularControls(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+      child: Wrap(
+        alignment: WrapAlignment.center,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        runSpacing: 8,
+        spacing: 8,
+        children: [
+          SegmentedButton<PopularScale>(
+            showSelectedIcon: false,
+            segments: [
+              for (final scale in PopularScale.values)
+                ButtonSegment(value: scale, label: Text(_scaleLabel(scale))),
+            ],
+            selected: {_popularScale},
+            onSelectionChanged: (selection) {
+              setState(() {
+                _popularScale = selection.first;
+              });
+            },
+          ),
+          IconButton.outlined(
+            tooltip: i18n.postList.previousPopularPeriod,
+            onPressed: () {
+              _setPopularDate(_shiftPopularDate(-1));
+            },
+            icon: const Icon(Icons.chevron_left),
+          ),
+          OutlinedButton.icon(
+            onPressed: _pickPopularDate,
+            icon: const Icon(Icons.calendar_month_outlined),
+            label: Text(_popularDateText(), style: theme.textTheme.labelLarge),
+          ),
+          IconButton.outlined(
+            tooltip: i18n.postList.nextPopularPeriod,
+            onPressed:
+                _canShowNextPeriod
+                    ? () {
+                      _setPopularDate(_shiftPopularDate(1));
+                    }
+                    : null,
+            icon: const Icon(Icons.chevron_right),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget buildRefreshIndicator(
     BuildContext context,
@@ -118,7 +270,7 @@ class _PostListPageState extends ConsumerState<PostListPage> {
             parent: AlwaysScrollableScrollPhysics(),
           ),
           slivers: [
-            if (widget.tags != null)
+            if (widget.tags != null || _isPopular)
               SliverAppBar(
                 floating: isMobile || widget.tags == null,
                 snap: isMobile,
@@ -130,13 +282,20 @@ class _PostListPageState extends ConsumerState<PostListPage> {
                   final tags? => Text(
                     i18n.postList.titleWithTags(tags.join(' ')),
                   ),
+                  _ when _isPopular => Text(i18n.postList.popular),
                   _ => Text(i18n.postList.title),
                 },
                 bottom: PreferredSize(
-                  preferredSize: const Size.fromHeight(1),
-                  child: Divider(
-                    color: theme.colorScheme.outlineVariant.withAlpha(120),
-                    height: 1,
+                  preferredSize: Size.fromHeight(_isPopular ? 112 : 1),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (_isPopular) _buildPopularControls(context),
+                      Divider(
+                        color: theme.colorScheme.outlineVariant.withAlpha(120),
+                        height: 1,
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -295,7 +454,8 @@ class _PostListPageState extends ConsumerState<PostListPage> {
       floatingActionButton:
           isDesktop
               ? FloatingActionButton(
-                heroTag: '${runtimeType}FloatingActionButton',
+                heroTag:
+                    '${runtimeType}_${widget.mode}_${widget.tags?.join('_') ?? 'root'}FloatingActionButton',
                 onPressed: () {
                   state.source.refresh(true);
                 },

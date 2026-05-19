@@ -16,7 +16,15 @@ final class PostListProvider
     extends $NotifierProvider<PostList, PostListState> {
   const PostListProvider._({
     required PostListFamily super.from,
-    required (Type, {List<String> tags}) super.argument,
+    required (
+      Type, {
+      String siteKey,
+      List<String> tags,
+      PostListMode mode,
+      PopularScale popularScale,
+      DateTime popularDate,
+    })
+    super.argument,
   }) : super(
          retry: null,
          name: r'postListProvider',
@@ -58,7 +66,7 @@ final class PostListProvider
   }
 }
 
-String _$postListHash() => r'1543c96dd3d9034bbcc6bcd4a005247775f21533';
+String _$postListHash() => r'3567d2f3fd91818bdbd27ad8728bdf7040c50233';
 
 final class PostListFamily extends $Family
     with
@@ -67,7 +75,14 @@ final class PostListFamily extends $Family
           PostListState,
           PostListState,
           PostListState,
-          (Type, {List<String> tags})
+          (
+            Type, {
+            String siteKey,
+            List<String> tags,
+            PostListMode mode,
+            PopularScale popularScale,
+            DateTime popularDate,
+          })
         > {
   const PostListFamily._()
     : super(
@@ -78,23 +93,66 @@ final class PostListFamily extends $Family
         isAutoDispose: false,
       );
 
-  PostListProvider call(Type type, {required List<String> tags}) =>
-      PostListProvider._(argument: (type, tags: tags), from: this);
+  PostListProvider call(
+    Type type, {
+    required String siteKey,
+    required List<String> tags,
+    PostListMode mode = PostListMode.recent,
+    PopularScale popularScale = PopularScale.day,
+    required DateTime popularDate,
+  }) => PostListProvider._(
+    argument: (
+      type,
+      siteKey: siteKey,
+      tags: tags,
+      mode: mode,
+      popularScale: popularScale,
+      popularDate: popularDate,
+    ),
+    from: this,
+  );
 
   @override
   String toString() => r'postListProvider';
 }
 
 abstract class _$PostList extends $Notifier<PostListState> {
-  late final _$args = ref.$arg as (Type, {List<String> tags});
+  late final _$args =
+      ref.$arg
+          as (
+            Type, {
+            String siteKey,
+            List<String> tags,
+            PostListMode mode,
+            PopularScale popularScale,
+            DateTime popularDate,
+          });
   Type get type => _$args.$1;
+  String get siteKey => _$args.siteKey;
   List<String> get tags => _$args.tags;
+  PostListMode get mode => _$args.mode;
+  PopularScale get popularScale => _$args.popularScale;
+  DateTime get popularDate => _$args.popularDate;
 
-  PostListState build(Type type, {required List<String> tags});
+  PostListState build(
+    Type type, {
+    required String siteKey,
+    required List<String> tags,
+    PostListMode mode = PostListMode.recent,
+    PopularScale popularScale = PopularScale.day,
+    required DateTime popularDate,
+  });
   @$mustCallSuper
   @override
   void runBuild() {
-    final created = build(_$args.$1, tags: _$args.tags);
+    final created = build(
+      _$args.$1,
+      siteKey: _$args.siteKey,
+      tags: _$args.tags,
+      mode: _$args.mode,
+      popularScale: _$args.popularScale,
+      popularDate: _$args.popularDate,
+    );
     final ref = this.ref as $Ref<PostListState, PostListState>;
     final element =
         ref.element

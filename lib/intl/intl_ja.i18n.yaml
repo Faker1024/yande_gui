@@ -17,6 +17,13 @@ update:
 
 postList:
   short: 投稿
+  popular: 人気
+  popularDay: 日
+  popularWeek: 週
+  popularMonth: 月
+  popularYear: 年
+  previousPopularPeriod: 前の期間
+  nextPopularPeriod: 次の期間
   title: 投稿リスト
   titleWithTags(String tags): "タグ付き投稿: $tags"
 
@@ -83,6 +90,7 @@ about:
 
 settings:
   title: 設定
+  site: サイト
   theme: テーマ
   language: 言語
   prefetchDns: DNS のプリフェッチ
@@ -98,6 +106,10 @@ settings:
 
   languageDialog:
     title: 言語
+
+  siteDialog:
+    title: サイト
+    switching: サイトを切り替え中…
 
   themeModeDialog:
     title: テーマモード

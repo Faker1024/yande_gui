@@ -17,6 +17,13 @@ update:
 
 postList:
   short: Post
+  popular: Popular
+  popularDay: Day
+  popularWeek: Week
+  popularMonth: Month
+  popularYear: Year
+  previousPopularPeriod: Previous period
+  nextPopularPeriod: Next period
   title: Post List
   titleWithTags(String tags): "Posts with tags: $tags"
 
@@ -83,6 +90,7 @@ about:
 
 settings:
   title: Settings
+  site: Site
   theme: Theme
   language: Language
   prefetchDns: Prefetch DNS
@@ -98,6 +106,10 @@ settings:
 
   languageDialog:
     title: Language
+
+  siteDialog:
+    title: Site
+    switching: Switching site...
 
   themeModeDialog:
     title: Theme Mode

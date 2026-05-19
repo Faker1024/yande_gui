@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:yande_gui/global.dart';
 import 'package:yande_gui/i18n.dart';
+import 'package:yande_gui/services/booru_site_service.dart';
+import 'package:yande_gui/services/macos_security_scoped_bookmark_service.dart';
 import 'package:yande_gui/services/settings_service.dart';
 import 'package:yande_gui/ui/app_ui.dart';
 import 'package:yande_gui/widgets/auto_scaffold/auto_scaffold.dart';
@@ -53,6 +55,10 @@ class _SettingsPageState extends State<SettingsPage> {
       2 => '繁體中文',
       _ => 'Unknown',
     };
+  }
+
+  String siteToText(String siteKey) {
+    return BooruSite.fromKey(siteKey).displayName;
   }
 
   String waterfallColumns(int? columns) {
@@ -202,6 +208,57 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
+  void _siteDialog() {
+    showCupertinoDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) {
+        return CupertinoAlertDialog(
+          title: Text(i18n.settings.siteDialog.title),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final site in BooruSite.values)
+                RadioListTile<String>(
+                  title: Text(site.displayName),
+                  subtitle: Text(site.postPageUri.toString()),
+                  value: site.key,
+                  groupValue: SettingsService.siteKey,
+                  onChanged: (value) async {
+                    if (value == null) return;
+                    Navigator.of(context).pop();
+                    if (value == SettingsService.siteKey) return;
+
+                    SettingsService.siteKey = value;
+                    EasyLoading.show(
+                      status: i18n.settings.siteDialog.switching,
+                    );
+                    try {
+                      await BooruSiteService.configureClients(fetchDns: true);
+                      EasyLoading.dismiss();
+                      rootUpdateController.add(null);
+                      if (mounted) setState(() {});
+                    } catch (e) {
+                      EasyLoading.showError(e.toString());
+                    }
+                  },
+                ),
+            ],
+          ),
+          actions: [
+            CupertinoDialogAction(
+              isDestructiveAction: true,
+              child: Text(i18n.generic.cancel),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _dnsPrefetchDialog() {
     showCupertinoDialog(
       context: context,
@@ -215,10 +272,14 @@ class _SettingsPageState extends State<SettingsPage> {
               CheckboxListTile(
                 value: SettingsService.prefetchDns,
                 title: Text(i18n.generic.enabled),
-                onChanged: (v) {
+                onChanged: (v) async {
+                  final navigator = Navigator.of(context);
                   SettingsService.prefetchDns = v ?? false;
+                  await BooruSiteService.configureClients(
+                    fetchDns: SettingsService.prefetchDns,
+                  );
                   rootUpdateController.add(null);
-                  Navigator.of(context).pop();
+                  navigator.pop();
                 },
               ),
             ],
@@ -241,6 +302,7 @@ class _SettingsPageState extends State<SettingsPage> {
     final textController = TextEditingController(
       text: SettingsService.downloadPath,
     );
+    String? selectedBookmark = SettingsService.downloadPathBookmark;
     showCupertinoDialog(
       context: context,
       barrierDismissible: true,
@@ -256,6 +318,9 @@ class _SettingsPageState extends State<SettingsPage> {
                 children: [
                   TextField(
                     controller: textController,
+                    onChanged: (_) {
+                      selectedBookmark = null;
+                    },
                     decoration: const InputDecoration(
                       hintText: 'Platform Default',
                     ),
@@ -265,16 +330,25 @@ class _SettingsPageState extends State<SettingsPage> {
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       ElevatedButton(
-                        onPressed: () {
-                          FilePicker.platform
+                        onPressed: () async {
+                          if (Platform.isMacOS) {
+                            final grant =
+                                await MacOSSecurityScopedBookmarkService.pickDirectory();
+                            if (grant != null) {
+                              textController.text = grant.path;
+                              selectedBookmark = grant.bookmark;
+                            }
+                            return;
+                          }
+
+                          final value = await FilePicker.platform
                               .getDirectoryPath(
                                 dialogTitle: 'Select a directory',
-                              )
-                              .then((value) {
-                                if (value != null) {
-                                  textController.text = value;
-                                }
-                              });
+                              );
+                          if (value != null) {
+                            textController.text = value;
+                            selectedBookmark = null;
+                          }
                         },
                         child: const Text('Pick'),
                       ),
@@ -282,6 +356,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       ElevatedButton(
                         onPressed: () {
                           textController.clear();
+                          selectedBookmark = null;
                         },
                         child: const Text('Clear'),
                       ),
@@ -306,6 +381,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
                 if (dir.isEmpty) {
                   SettingsService.downloadPath = null;
+                  SettingsService.downloadPathBookmark = null;
                   EasyLoading.showInfo('Download path set to platform default');
                   setState(() {});
                   Navigator.of(context).pop();
@@ -331,6 +407,8 @@ class _SettingsPageState extends State<SettingsPage> {
                 }
 
                 SettingsService.downloadPath = textController.text;
+                SettingsService.downloadPathBookmark =
+                    Platform.isMacOS ? selectedBookmark : null;
                 setState(() {});
                 Navigator.of(context).pop();
               },
@@ -524,6 +602,14 @@ class _SettingsPageState extends State<SettingsPage> {
         return ListView(
           padding: const EdgeInsets.symmetric(vertical: 8),
           children: [
+            buildItem(
+              title: Text(i18n.settings.site),
+              leading: const Icon(Icons.public_outlined),
+              subtitle: Text(siteToText(SettingsService.siteKey)),
+              onTap: () {
+                _siteDialog();
+              },
+            ),
             buildItem(
               title: Text(i18n.settings.language),
               leading: const Icon(Icons.language),

@@ -164,6 +164,41 @@ class PostListIntl {
   String get short => """Post""";
 
   /// ```dart
+  /// "Popular"
+  /// ```
+  String get popular => """Popular""";
+
+  /// ```dart
+  /// "Day"
+  /// ```
+  String get popularDay => """Day""";
+
+  /// ```dart
+  /// "Week"
+  /// ```
+  String get popularWeek => """Week""";
+
+  /// ```dart
+  /// "Month"
+  /// ```
+  String get popularMonth => """Month""";
+
+  /// ```dart
+  /// "Year"
+  /// ```
+  String get popularYear => """Year""";
+
+  /// ```dart
+  /// "Previous period"
+  /// ```
+  String get previousPopularPeriod => """Previous period""";
+
+  /// ```dart
+  /// "Next period"
+  /// ```
+  String get nextPopularPeriod => """Next period""";
+
+  /// ```dart
   /// "Post List"
   /// ```
   String get title => """Post List""";
@@ -460,6 +495,11 @@ class SettingsIntl {
   String get title => """Settings""";
 
   /// ```dart
+  /// "Site"
+  /// ```
+  String get site => """Site""";
+
+  /// ```dart
   /// "Theme"
   /// ```
   String get theme => """Theme""";
@@ -520,6 +560,7 @@ class SettingsIntl {
   String get dark => """Dark""";
   LanguageDialogSettingsIntl get languageDialog =>
       LanguageDialogSettingsIntl(this);
+  SiteDialogSettingsIntl get siteDialog => SiteDialogSettingsIntl(this);
   ThemeModeDialogSettingsIntl get themeModeDialog =>
       ThemeModeDialogSettingsIntl(this);
   DownloadDirectoryDialogSettingsIntl get downloadDirectoryDialog =>
@@ -542,6 +583,21 @@ class LanguageDialogSettingsIntl {
   /// "Language"
   /// ```
   String get title => """Language""";
+}
+
+class SiteDialogSettingsIntl {
+  final SettingsIntl _parent;
+  const SiteDialogSettingsIntl(this._parent);
+
+  /// ```dart
+  /// "Site"
+  /// ```
+  String get title => """Site""";
+
+  /// ```dart
+  /// "Switching site..."
+  /// ```
+  String get switching => """Switching site...""";
 }
 
 class ThemeModeDialogSettingsIntl {
@@ -650,6 +706,13 @@ Map<String, String> get intlMap => {
       """Unable to find download URL.\nPlease visit the project page to manually update or seek help on the project Issue page.""",
   """update.noNewVersionFound""": """No new version found.""",
   """postList.short""": """Post""",
+  """postList.popular""": """Popular""",
+  """postList.popularDay""": """Day""",
+  """postList.popularWeek""": """Week""",
+  """postList.popularMonth""": """Month""",
+  """postList.popularYear""": """Year""",
+  """postList.previousPopularPeriod""": """Previous period""",
+  """postList.nextPopularPeriod""": """Next period""",
   """postList.title""": """Post List""",
   """postDetail.createdAt""": """Created at""",
   """postDetail.author""": """Author""",
@@ -700,6 +763,7 @@ Map<String, String> get intlMap => {
   """about.downloadUpdateHint""":
       """Download the latest version for your device via your browser.""",
   """settings.title""": """Settings""",
+  """settings.site""": """Site""",
   """settings.theme""": """Theme""",
   """settings.language""": """Language""",
   """settings.prefetchDns""": """Prefetch DNS""",
@@ -713,6 +777,8 @@ Map<String, String> get intlMap => {
   """settings.light""": """Light""",
   """settings.dark""": """Dark""",
   """settings.languageDialog.title""": """Language""",
+  """settings.siteDialog.title""": """Site""",
+  """settings.siteDialog.switching""": """Switching site...""",
   """settings.themeModeDialog.title""": """Theme Mode""",
   """settings.downloadDirectoryDialog.title""": """Download Directory""",
   """settings.downloadDirectoryDialog.pickerTitle""": """Choose Directory""",

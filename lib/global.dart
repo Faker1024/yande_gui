@@ -18,8 +18,17 @@ void setYandeClient(YandeClient client) {
   _yandeClient = client;
 }
 
+YandeClient get downloadClient => _downloadClient ?? yandeClient;
+
+YandeClient? _downloadClient;
+
+void setDownloadClient(YandeClient client) {
+  _downloadClient = client;
+}
+
 List<String>? realIps;
 
-bool get isDesktop => Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+bool get isDesktop =>
+    Platform.isWindows || Platform.isLinux || Platform.isMacOS;
 
 bool get isMobile => Platform.isAndroid || Platform.isIOS;

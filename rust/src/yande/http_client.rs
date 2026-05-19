@@ -1,12 +1,13 @@
 use flutter_rust_bridge::DartFnFuture;
 use futures_util::future::try_join_all;
 use futures_util::stream::StreamExt;
+use reqwest::header::{ACCEPT, CONTENT_TYPE, RANGE};
 use reqwest::Url;
 use std::io::Write;
 use std::path::Path;
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::io::{AsyncSeekExt, AsyncWriteExt};
+use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
 use tokio::sync::Mutex;
 use tokio::task;
 
@@ -18,7 +19,9 @@ impl HttpClient {
     pub fn new(ips: Option<[String; 3]>, for_large_file: bool) -> Self {
         let mut client_builder = reqwest::ClientBuilder::new()
             .http2_prior_knowledge()
-            .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)")
+            .user_agent(
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)",
+            )
             .https_only(true)
             .http2_adaptive_window(true)
             .http2_keep_alive_interval(Duration::from_secs(30))
@@ -97,7 +100,16 @@ impl HttpClient {
         progress_callback: impl Fn(usize, usize) -> DartFnFuture<()> + Send + Sync + 'static,
         cancel_token: tokio_util::sync::CancellationToken,
     ) -> anyhow::Result<()> {
-        let head_resp = self.client.head(url).send().await?;
+        let head_resp = self
+            .client
+            .head(url)
+            .header(
+                ACCEPT,
+                "image/avif,image/webp,image/apng,image/svg+xml,image/*,video/*,*/*;q=0.8",
+            )
+            .send()
+            .await?;
+        validate_response(&head_resp, "download metadata")?;
         let total_size = head_resp
             .content_length()
             .ok_or_else(|| anyhow::anyhow!("No content length"))? as usize;
@@ -178,7 +190,11 @@ impl HttpClient {
 
                 let resp = client
                     .get(&url)
-                    .header("Range", range_header)
+                    .header(RANGE, range_header)
+                    .header(
+                        ACCEPT,
+                        "image/avif,image/webp,image/apng,image/svg+xml,image/*,video/*,*/*;q=0.8",
+                    )
                     .send()
                     .await?;
 
@@ -187,6 +203,7 @@ impl HttpClient {
                         "Server did not support range requests properly"
                     ));
                 }
+                validate_content_type(&resp, "download range")?;
 
                 let mut stream = resp.bytes_stream();
                 let mut last = 0;
@@ -262,6 +279,10 @@ impl HttpClient {
         }
 
         output.flush()?;
+        if let Err(e) = validate_downloaded_file(file_path).await {
+            let _ = tokio::fs::remove_file(file_path).await;
+            return Err(e);
+        }
         Ok(())
     }
 
@@ -278,7 +299,16 @@ impl HttpClient {
         let part_offset = total_size / 50;
         let mut next_threshold = part_offset;
 
-        let resp = self.client.get(url).send().await?;
+        let resp = self
+            .client
+            .get(url)
+            .header(
+                ACCEPT,
+                "image/avif,image/webp,image/apng,image/svg+xml,image/*,video/*,*/*;q=0.8",
+            )
+            .send()
+            .await?;
+        validate_response(&resp, "download")?;
         let mut stream = resp.bytes_stream();
 
         std::fs::create_dir_all(Path::new(file_path).parent().unwrap())?;
@@ -296,6 +326,10 @@ impl HttpClient {
         }
 
         file.flush()?;
+        if let Err(e) = validate_downloaded_file(file_path).await {
+            let _ = tokio::fs::remove_file(file_path).await;
+            return Err(e);
+        }
         Ok(())
     }
 
@@ -305,6 +339,7 @@ impl HttpClient {
         progress_callback: impl Fn(usize, usize) -> DartFnFuture<()> + 'static + Send,
     ) -> anyhow::Result<Vec<u8>> {
         let get_resp = self.get(url, None).await?;
+        validate_response(&get_resp, "image request")?;
         let total_size = get_resp
             .content_length()
             .ok_or("No content length")
@@ -330,6 +365,91 @@ impl HttpClient {
             bytes.extend_from_slice(&chunk);
         }
 
+        validate_downloaded_bytes(&bytes)?;
         Ok(bytes)
     }
+}
+
+fn validate_response(resp: &reqwest::Response, context: &str) -> anyhow::Result<()> {
+    if !resp.status().is_success() {
+        return Err(anyhow::anyhow!(
+            "{} failed with HTTP status {}",
+            context,
+            resp.status()
+        ));
+    }
+
+    validate_content_type(resp, context)
+}
+
+fn validate_content_type(resp: &reqwest::Response, context: &str) -> anyhow::Result<()> {
+    let Some(content_type) = resp.headers().get(CONTENT_TYPE) else {
+        return Ok(());
+    };
+    let Ok(content_type) = content_type.to_str() else {
+        return Ok(());
+    };
+
+    let normalized = content_type.to_ascii_lowercase();
+    let media_type = normalized.split(';').next().unwrap_or("").trim();
+    if media_type.starts_with("image/")
+        || media_type.starts_with("video/")
+        || media_type == "application/octet-stream"
+        || media_type == "binary/octet-stream"
+    {
+        return Ok(());
+    }
+
+    if media_type.contains("html")
+        || media_type.starts_with("text/")
+        || media_type.contains("json")
+        || media_type.contains("xml")
+    {
+        return Err(anyhow::anyhow!(
+            "{} returned {}, not a downloadable media file. The site may require browser verification.",
+            context,
+            content_type
+        ));
+    }
+
+    Ok(())
+}
+
+async fn validate_downloaded_file(file_path: &str) -> anyhow::Result<()> {
+    let mut file = tokio::fs::File::open(file_path).await?;
+    let mut sample = [0_u8; 512];
+    let read = file.read(&mut sample).await?;
+
+    validate_downloaded_bytes(&sample[..read])
+}
+
+fn validate_downloaded_bytes(bytes: &[u8]) -> anyhow::Result<()> {
+    if bytes.is_empty() {
+        return Err(anyhow::anyhow!("Downloaded file is empty"));
+    }
+
+    if looks_like_html(bytes) {
+        return Err(anyhow::anyhow!(
+            "Downloaded response is not an image/video file. The site may require browser verification."
+        ));
+    }
+
+    Ok(())
+}
+
+fn looks_like_html(bytes: &[u8]) -> bool {
+    let bytes = bytes.strip_prefix(&[0xef, 0xbb, 0xbf]).unwrap_or(bytes);
+    let bytes = bytes
+        .iter()
+        .skip_while(|byte| byte.is_ascii_whitespace())
+        .copied()
+        .take(32)
+        .collect::<Vec<_>>();
+    let prefix = String::from_utf8_lossy(&bytes).to_ascii_lowercase();
+
+    prefix.starts_with("<!doctype html")
+        || prefix.starts_with("<html")
+        || prefix.starts_with("<head")
+        || prefix.starts_with("<body")
+        || prefix.starts_with("<script")
 }

@@ -28,6 +28,18 @@ class SettingsService {
     _save();
   }
 
+  static String get siteKey => _map['siteKey'] as String? ?? 'yande';
+
+  static set siteKey(String value) {
+    _map['siteKey'] = value;
+    _save();
+    _siteStreamController.add(null);
+  }
+
+  static final _siteStreamController = StreamController<void>.broadcast();
+
+  static final siteStream = _siteStreamController.stream;
+
   static bool get prefetchDns => _map['prefetchDns'] as bool? ?? true;
 
   static set prefetchDns(bool value) {
@@ -46,6 +58,18 @@ class SettingsService {
 
   static set downloadPath(String? value) {
     _map['downloadPath'] = value;
+    _save();
+  }
+
+  static String? get downloadPathBookmark =>
+      _map['downloadPathBookmark'] as String?;
+
+  static set downloadPathBookmark(String? value) {
+    if (value == null) {
+      _map.remove('downloadPathBookmark');
+    } else {
+      _map['downloadPathBookmark'] = value;
+    }
     _save();
   }
 
@@ -75,7 +99,9 @@ class SettingsService {
   static const int _maxDownloadHistoryCount = 100;
 
   static List<String> get searchHistory {
-    final value = _map['searchHistory'];
+    final historyBySite = _map['searchHistoryBySite'];
+    final value =
+        historyBySite is Map ? historyBySite[siteKey] : _map['searchHistory'];
     if (value is! List) return [];
     return value.whereType<String>().toList(growable: false);
   }
@@ -88,22 +114,30 @@ class SettingsService {
       normalized,
       ...searchHistory.where((item) => item != normalized),
     ];
-    _map['searchHistory'] = history
-        .take(_maxSearchHistoryCount)
-        .toList(growable: false);
+    _setSearchHistory(
+      history.take(_maxSearchHistoryCount).toList(growable: false),
+    );
     _save();
   }
 
   static void removeSearchHistory(String value) {
-    _map['searchHistory'] = searchHistory
-        .where((item) => item != value)
-        .toList(growable: false);
+    _setSearchHistory(
+      searchHistory.where((item) => item != value).toList(growable: false),
+    );
     _save();
   }
 
   static void clearSearchHistory() {
-    _map['searchHistory'] = <String>[];
+    _setSearchHistory(<String>[]);
     _save();
+  }
+
+  static void _setSearchHistory(List<String> history) {
+    final historyBySite = Map<String, dynamic>.from(
+      _map['searchHistoryBySite'] as Map? ?? const {},
+    );
+    historyBySite[siteKey] = history;
+    _map['searchHistoryBySite'] = historyBySite;
   }
 
   static List<Map<String, dynamic>> get downloadHistory {
@@ -138,6 +172,12 @@ class SettingsService {
 
   static void clearDownloadHistory() {
     _map['downloadHistory'] = <Map<String, dynamic>>[];
+    _save();
+    _downloadHistoryStreamController.add(null);
+  }
+
+  static void replaceDownloadHistory(List<Map<String, dynamic>> items) {
+    _map['downloadHistory'] = items;
     _save();
     _downloadHistoryStreamController.add(null);
   }

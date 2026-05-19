@@ -161,6 +161,41 @@ class PostListIntlZhTW extends PostListIntl {
   String get short => """帖子""";
 
   /// ```dart
+  /// "熱門"
+  /// ```
+  String get popular => """熱門""";
+
+  /// ```dart
+  /// "日"
+  /// ```
+  String get popularDay => """日""";
+
+  /// ```dart
+  /// "周"
+  /// ```
+  String get popularWeek => """周""";
+
+  /// ```dart
+  /// "月"
+  /// ```
+  String get popularMonth => """月""";
+
+  /// ```dart
+  /// "年"
+  /// ```
+  String get popularYear => """年""";
+
+  /// ```dart
+  /// "上一段"
+  /// ```
+  String get previousPopularPeriod => """上一段""";
+
+  /// ```dart
+  /// "下一段"
+  /// ```
+  String get nextPopularPeriod => """下一段""";
+
+  /// ```dart
   /// "帖子列表"
   /// ```
   String get title => """帖子列表""";
@@ -452,6 +487,11 @@ class SettingsIntlZhTW extends SettingsIntl {
   String get title => """設定""";
 
   /// ```dart
+  /// "站點"
+  /// ```
+  String get site => """站點""";
+
+  /// ```dart
   /// "主題"
   /// ```
   String get theme => """主題""";
@@ -512,6 +552,7 @@ class SettingsIntlZhTW extends SettingsIntl {
   String get dark => """深色模式""";
   LanguageDialogSettingsIntlZhTW get languageDialog =>
       LanguageDialogSettingsIntlZhTW(this);
+  SiteDialogSettingsIntlZhTW get siteDialog => SiteDialogSettingsIntlZhTW(this);
   ThemeModeDialogSettingsIntlZhTW get themeModeDialog =>
       ThemeModeDialogSettingsIntlZhTW(this);
   DownloadDirectoryDialogSettingsIntlZhTW get downloadDirectoryDialog =>
@@ -535,6 +576,21 @@ class LanguageDialogSettingsIntlZhTW extends LanguageDialogSettingsIntl {
   /// "語言"
   /// ```
   String get title => """語言""";
+}
+
+class SiteDialogSettingsIntlZhTW extends SiteDialogSettingsIntl {
+  final SettingsIntlZhTW _parent;
+  const SiteDialogSettingsIntlZhTW(this._parent) : super(_parent);
+
+  /// ```dart
+  /// "站點"
+  /// ```
+  String get title => """站點""";
+
+  /// ```dart
+  /// "正在切換站點..."
+  /// ```
+  String get switching => """正在切換站點...""";
 }
 
 class ThemeModeDialogSettingsIntlZhTW extends ThemeModeDialogSettingsIntl {
@@ -649,6 +705,13 @@ Map<String, String> get intlZhTWMap => {
       """找不到下載連結。\n請訪問專案頁面以手動更新或在專案Issue頁尋求幫助。""",
   """update.noNewVersionFound""": """沒有新版本。""",
   """postList.short""": """帖子""",
+  """postList.popular""": """熱門""",
+  """postList.popularDay""": """日""",
+  """postList.popularWeek""": """周""",
+  """postList.popularMonth""": """月""",
+  """postList.popularYear""": """年""",
+  """postList.previousPopularPeriod""": """上一段""",
+  """postList.nextPopularPeriod""": """下一段""",
   """postList.title""": """帖子列表""",
   """postDetail.createdAt""": """建立時間""",
   """postDetail.author""": """作者""",
@@ -693,6 +756,7 @@ Map<String, String> get intlZhTWMap => {
   """about.downloadUpdate""": """下載更新""",
   """about.downloadUpdateHint""": """透過瀏覽器下載適合您裝置的最新版本。""",
   """settings.title""": """設定""",
+  """settings.site""": """站點""",
   """settings.theme""": """主題""",
   """settings.language""": """語言""",
   """settings.prefetchDns""": """預抓取 DNS""",
@@ -706,6 +770,8 @@ Map<String, String> get intlZhTWMap => {
   """settings.light""": """淺色模式""",
   """settings.dark""": """深色模式""",
   """settings.languageDialog.title""": """語言""",
+  """settings.siteDialog.title""": """站點""",
+  """settings.siteDialog.switching""": """正在切換站點...""",
   """settings.themeModeDialog.title""": """主題模式""",
   """settings.downloadDirectoryDialog.title""": """下載目錄""",
   """settings.downloadDirectoryDialog.pickerTitle""": """選擇目錄""",

@@ -2,6 +2,15 @@ import 'dart:async';
 
 import 'package:yande_gui/global.dart';
 
+typedef DownloadFile =
+    Future<void> Function({
+      required String url,
+      required String filePath,
+      required int maxSegmentsPerTask,
+      required FutureOr<void> Function(BigInt received, BigInt total)
+      progressCallback,
+    });
+
 abstract class DownloadEventBase {}
 
 class DownloadEventStart extends DownloadEventBase {
@@ -27,14 +36,26 @@ class _DownloadTaskArgs {
   final String filePath;
   final int maxSegmentsPerTask;
 
-  _DownloadTaskArgs({required this.url, required this.filePath, required this.maxSegmentsPerTask});
+  _DownloadTaskArgs({
+    required this.url,
+    required this.filePath,
+    required this.maxSegmentsPerTask,
+  });
 }
 
 class DownloadQueueManager {
   final int Function() _getMaxConcurrentDownloads;
   final FutureOr<void> Function()? onFirstTaskStarted;
   final FutureOr<void> Function()? onAllTasksCompleted;
-  final FutureOr<void> Function(int total, int completed, int failed, int canceled, double overallProgress)? onProgressChanged;
+  final FutureOr<void> Function(
+    int total,
+    int completed,
+    int failed,
+    int canceled,
+    double overallProgress,
+  )?
+  onProgressChanged;
+  final DownloadFile? downloadFile;
 
   final _queue = <_DownloadTaskEntry>[];
   final _activeJobs = <String, _DownloadTaskEntry>{};
@@ -53,6 +74,7 @@ class DownloadQueueManager {
     this.onFirstTaskStarted,
     this.onAllTasksCompleted,
     this.onProgressChanged,
+    this.downloadFile,
   }) : _getMaxConcurrentDownloads = getMaxConcurrentDownloads;
 
   int get _maxConcurrentDownloads => _getMaxConcurrentDownloads();
@@ -65,11 +87,16 @@ class DownloadQueueManager {
     required void Function(DownloadEventBase event) onEvent,
   }) async {
     final isNewSession = _isIdle;
-    if (!_queue.any((e) => e.taskId == taskId) && !_activeJobs.containsKey(taskId)) {
+    if (!_queue.any((e) => e.taskId == taskId) &&
+        !_activeJobs.containsKey(taskId)) {
       _queue.add(
         _DownloadTaskEntry(
           taskId: taskId,
-          args: _DownloadTaskArgs(url: url, filePath: filePath, maxSegmentsPerTask: maxSegmentsPerTask),
+          args: _DownloadTaskArgs(
+            url: url,
+            filePath: filePath,
+            maxSegmentsPerTask: maxSegmentsPerTask,
+          ),
           callback: onEvent,
         ),
       );
@@ -100,7 +127,8 @@ class DownloadQueueManager {
   }
 
   Future<void> schedule() async {
-    final shouldTriggerStart = _isIdle && (_queue.isNotEmpty || _activeJobs.isNotEmpty);
+    final shouldTriggerStart =
+        _isIdle && (_queue.isNotEmpty || _activeJobs.isNotEmpty);
 
     while (_activeJobs.length < _maxConcurrentDownloads && _queue.isNotEmpty) {
       final task = _queue.removeAt(0);
@@ -108,7 +136,9 @@ class DownloadQueueManager {
       _doDownload(task);
     }
 
-    if (shouldTriggerStart && _activeJobs.isNotEmpty && !_foregroundServiceStarted) {
+    if (shouldTriggerStart &&
+        _activeJobs.isNotEmpty &&
+        !_foregroundServiceStarted) {
       _isIdle = false;
       await onFirstTaskStarted?.call();
       _foregroundServiceStarted = true;
@@ -125,10 +155,11 @@ class DownloadQueueManager {
     _taskProgress[taskId] = 0.0;
     _updateProgressThrottled();
     try {
-      await yandeClient.downloadToFile(
+      final downloader = downloadFile ?? _downloadWithRust;
+      await downloader(
         url: args.url,
         filePath: args.filePath,
-        maxTaskCount: args.maxSegmentsPerTask,
+        maxSegmentsPerTask: args.maxSegmentsPerTask,
         progressCallback: (received, total) {
           final progress = total == BigInt.zero ? 0.0 : received / total;
           _taskProgress[taskId] = progress.toDouble();
@@ -176,7 +207,13 @@ class DownloadQueueManager {
       if (overallProgress > 1.0) overallProgress = 1.0;
     }
 
-    onProgressChanged?.call(_totalTaskCount, _completedTaskCount, _failedTaskCount, _canceledTaskCount, overallProgress);
+    onProgressChanged?.call(
+      _totalTaskCount,
+      _completedTaskCount,
+      _failedTaskCount,
+      _canceledTaskCount,
+      overallProgress,
+    );
   }
 
   void resetStats() {
@@ -189,10 +226,29 @@ class DownloadQueueManager {
   }
 }
 
+Future<void> _downloadWithRust({
+  required String url,
+  required String filePath,
+  required int maxSegmentsPerTask,
+  required FutureOr<void> Function(BigInt received, BigInt total)
+  progressCallback,
+}) {
+  return downloadClient.downloadToFile(
+    url: url,
+    filePath: filePath,
+    maxTaskCount: maxSegmentsPerTask,
+    progressCallback: progressCallback,
+  );
+}
+
 class _DownloadTaskEntry {
   final String taskId;
   final _DownloadTaskArgs args;
   final void Function(DownloadEventBase) callback;
 
-  _DownloadTaskEntry({required this.taskId, required this.args, required this.callback});
+  _DownloadTaskEntry({
+    required this.taskId,
+    required this.args,
+    required this.callback,
+  });
 }

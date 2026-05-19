@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer';
 
 import 'package:device_info_plus/device_info_plus.dart';
@@ -6,6 +7,7 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:yande_gui/download_foreground_service_plugin.dart';
+import 'package:yande_gui/global.dart';
 import 'package:yande_gui/i18n.dart';
 import 'package:yande_gui/services/download_history_service.dart';
 import 'package:yande_gui/services/settings_service.dart';
@@ -21,6 +23,7 @@ class DownloaderAndroid<T> extends DownloaderPlatform<T> {
     onFirstTaskStarted: onFirstTaskStarted,
     onAllTasksCompleted: onAllTasksCompleted,
     onProgressChanged: onProgressChanged,
+    downloadFile: _downloadWithAndroidFallback,
   );
 
   final MethodChannel _channel = MethodChannel('image_saver');
@@ -225,4 +228,40 @@ class DownloaderAndroid<T> extends DownloaderPlatform<T> {
   void cancelTask(String taskId) {
     // TODO: implement cancelTask
   }
+}
+
+Future<void> _downloadWithAndroidFallback({
+  required String url,
+  required String filePath,
+  required int maxSegmentsPerTask,
+  required FutureOr<void> Function(BigInt received, BigInt total)
+  progressCallback,
+}) async {
+  try {
+    await downloadClient.downloadToFile(
+      url: url,
+      filePath: filePath,
+      maxTaskCount: maxSegmentsPerTask,
+      progressCallback: progressCallback,
+    );
+  } catch (error) {
+    if (!_canUseAndroidFallback(url)) {
+      rethrow;
+    }
+
+    log('download fallback to Android native:$error');
+    await progressCallback(BigInt.zero, BigInt.one);
+
+    final size = await const MethodChannel(
+      'image_saver',
+    ).invokeMethod<int>('downloadFile', {'url': url, 'filePath': filePath});
+
+    final downloaded = BigInt.from(size ?? 1);
+    await progressCallback(downloaded, downloaded);
+  }
+}
+
+bool _canUseAndroidFallback(String url) {
+  final host = Uri.tryParse(url)?.host;
+  return host == 'cdn.donmai.us' || (host?.endsWith('.cdn.donmai.us') ?? false);
 }

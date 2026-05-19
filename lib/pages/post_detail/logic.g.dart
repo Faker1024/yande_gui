@@ -17,7 +17,7 @@ final class GetSimilarProvider
     with $FutureModifier<Similar>, $FutureProvider<Similar> {
   const GetSimilarProvider._({
     required GetSimilarFamily super.from,
-    required int super.argument,
+    required ({String siteKey, int id}) super.argument,
   }) : super(
          retry: null,
          name: r'getSimilarProvider',
@@ -33,7 +33,7 @@ final class GetSimilarProvider
   String toString() {
     return r'getSimilarProvider'
         ''
-        '($argument)';
+        '$argument';
   }
 
   @$internal
@@ -43,8 +43,8 @@ final class GetSimilarProvider
 
   @override
   FutureOr<Similar> create(Ref ref) {
-    final argument = this.argument as int;
-    return getSimilar(ref, id: argument);
+    final argument = this.argument as ({String siteKey, int id});
+    return getSimilar(ref, siteKey: argument.siteKey, id: argument.id);
   }
 
   @override
@@ -58,10 +58,14 @@ final class GetSimilarProvider
   }
 }
 
-String _$getSimilarHash() => r'39eea96e2fa355ee516265aedd3dcd025090989a';
+String _$getSimilarHash() => r'9a3ee7c46d510cbc1aeb5c8617b11684c4435ebf';
 
 final class GetSimilarFamily extends $Family
-    with $FunctionalFamilyOverride<FutureOr<Similar>, int> {
+    with
+        $FunctionalFamilyOverride<
+          FutureOr<Similar>,
+          ({String siteKey, int id})
+        > {
   const GetSimilarFamily._()
     : super(
         retry: null,
@@ -71,8 +75,8 @@ final class GetSimilarFamily extends $Family
         isAutoDispose: true,
       );
 
-  GetSimilarProvider call({required int id}) =>
-      GetSimilarProvider._(argument: id, from: this);
+  GetSimilarProvider call({required String siteKey, required int id}) =>
+      GetSimilarProvider._(argument: (siteKey: siteKey, id: id), from: this);
 
   @override
   String toString() => r'getSimilarProvider';

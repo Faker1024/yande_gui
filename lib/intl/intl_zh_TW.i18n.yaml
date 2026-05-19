@@ -17,6 +17,13 @@ update:
 
 postList:
   short: 帖子
+  popular: 熱門
+  popularDay: 日
+  popularWeek: 周
+  popularMonth: 月
+  popularYear: 年
+  previousPopularPeriod: 上一段
+  nextPopularPeriod: 下一段
   title: 帖子列表
   titleWithTags(String tags): "帶有標籤的帖子: $tags"
 
@@ -83,6 +90,7 @@ about:
 
 settings:
   title: 設定
+  site: 站點
   theme: 主題
   language: 語言
   prefetchDns: 預抓取 DNS
@@ -98,6 +106,10 @@ settings:
 
   languageDialog:
     title: 語言
+
+  siteDialog:
+    title: 站點
+    switching: 正在切換站點...
 
   themeModeDialog:
     title: 主題模式

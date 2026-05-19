@@ -33,16 +33,30 @@ class YandeImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final uri = Uri.tryParse(url.trim());
+    if (uri == null || (uri.scheme != 'http' && uri.scheme != 'https')) {
+      return SizedBox(
+        width: width,
+        height: height,
+        child: const Center(child: Icon(Icons.broken_image_outlined)),
+      );
+    }
+
     return ExtendedImage(
       image: ExtendedNetworkImageProvider(
         url,
         cache: true,
         printError: false,
         bytesLoader: (void Function(ImageChunkEvent event) chunkEvent) async {
-          return await yandeClient.downloadToMemory(
+          return await downloadClient.downloadToMemory(
             url: url,
             progressCallback: (BigInt received, BigInt total) {
-              chunkEvent(ImageChunkEvent(cumulativeBytesLoaded: received.toInt(), expectedTotalBytes: total.toInt()));
+              chunkEvent(
+                ImageChunkEvent(
+                  cumulativeBytesLoaded: received.toInt(),
+                  expectedTotalBytes: total.toInt(),
+                ),
+              );
             },
           );
         },
@@ -58,23 +72,59 @@ class YandeImage extends StatelessWidget {
                   false => event.cumulativeBytesLoaded / total,
                 };
                 if (placeholderWidget case Widget widget?) {
-                  return Stack(children: [widget, Positioned(left: 0, top: 0, right: 0, child: LinearProgressIndicator(value: progress))]);
+                  return Stack(
+                    children: [
+                      widget,
+                      Positioned(
+                        left: 0,
+                        top: 0,
+                        right: 0,
+                        child: LinearProgressIndicator(value: progress),
+                      ),
+                    ],
+                  );
                 } else {
-                  return Padding(padding: const EdgeInsets.all(5), child: Center(child: CircularProgressIndicator(value: progress)));
+                  return Padding(
+                    padding: const EdgeInsets.all(5),
+                    child: Center(
+                      child: CircularProgressIndicator(value: progress),
+                    ),
+                  );
                 }
               }
             } else {
               if (placeholderWidget case Widget widget?) {
-                return Stack(children: [widget, const Positioned(left: 0, top: 0, right: 0, child: LinearProgressIndicator())]);
+                return Stack(
+                  children: [
+                    widget,
+                    const Positioned(
+                      left: 0,
+                      top: 0,
+                      right: 0,
+                      child: LinearProgressIndicator(),
+                    ),
+                  ],
+                );
               } else {
-                return const Padding(padding: EdgeInsets.all(5), child: Center(child: CupertinoActivityIndicator()));
+                return const Padding(
+                  padding: EdgeInsets.all(5),
+                  child: Center(child: CupertinoActivityIndicator()),
+                );
               }
             }
-            return const Padding(padding: EdgeInsets.all(5), child: Center(child: CupertinoActivityIndicator()));
+            return const Padding(
+              padding: EdgeInsets.all(5),
+              child: Center(child: CupertinoActivityIndicator()),
+            );
           case LoadState.completed:
             return imageBuilder?.call(state.completedWidget);
           case LoadState.failed:
-            return Center(child: IconButton(icon: const Icon(Icons.refresh_outlined), onPressed: state.reLoadImage));
+            return Center(
+              child: IconButton(
+                icon: const Icon(Icons.refresh_outlined),
+                onPressed: state.reLoadImage,
+              ),
+            );
         }
       },
       color: color,

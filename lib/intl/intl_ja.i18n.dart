@@ -164,6 +164,41 @@ class PostListIntlJa extends PostListIntl {
   String get short => """投稿""";
 
   /// ```dart
+  /// "人気"
+  /// ```
+  String get popular => """人気""";
+
+  /// ```dart
+  /// "日"
+  /// ```
+  String get popularDay => """日""";
+
+  /// ```dart
+  /// "週"
+  /// ```
+  String get popularWeek => """週""";
+
+  /// ```dart
+  /// "月"
+  /// ```
+  String get popularMonth => """月""";
+
+  /// ```dart
+  /// "年"
+  /// ```
+  String get popularYear => """年""";
+
+  /// ```dart
+  /// "前の期間"
+  /// ```
+  String get previousPopularPeriod => """前の期間""";
+
+  /// ```dart
+  /// "次の期間"
+  /// ```
+  String get nextPopularPeriod => """次の期間""";
+
+  /// ```dart
   /// "投稿リスト"
   /// ```
   String get title => """投稿リスト""";
@@ -457,6 +492,11 @@ class SettingsIntlJa extends SettingsIntl {
   String get title => """設定""";
 
   /// ```dart
+  /// "サイト"
+  /// ```
+  String get site => """サイト""";
+
+  /// ```dart
   /// "テーマ"
   /// ```
   String get theme => """テーマ""";
@@ -517,6 +557,7 @@ class SettingsIntlJa extends SettingsIntl {
   String get dark => """ダーク""";
   LanguageDialogSettingsIntlJa get languageDialog =>
       LanguageDialogSettingsIntlJa(this);
+  SiteDialogSettingsIntlJa get siteDialog => SiteDialogSettingsIntlJa(this);
   ThemeModeDialogSettingsIntlJa get themeModeDialog =>
       ThemeModeDialogSettingsIntlJa(this);
   DownloadDirectoryDialogSettingsIntlJa get downloadDirectoryDialog =>
@@ -539,6 +580,21 @@ class LanguageDialogSettingsIntlJa extends LanguageDialogSettingsIntl {
   /// "言語"
   /// ```
   String get title => """言語""";
+}
+
+class SiteDialogSettingsIntlJa extends SiteDialogSettingsIntl {
+  final SettingsIntlJa _parent;
+  const SiteDialogSettingsIntlJa(this._parent) : super(_parent);
+
+  /// ```dart
+  /// "サイト"
+  /// ```
+  String get title => """サイト""";
+
+  /// ```dart
+  /// "サイトを切り替え中…"
+  /// ```
+  String get switching => """サイトを切り替え中…""";
 }
 
 class ThemeModeDialogSettingsIntlJa extends ThemeModeDialogSettingsIntl {
@@ -654,6 +710,13 @@ Map<String, String> get intlJaMap => {
       """ダウンロードURLが見つかりません。\nプロジェクトページにアクセスし、手動で更新するか、プロジェクトのIssueページでヘルプを求めてください。""",
   """update.noNewVersionFound""": """新しいバージョンが見つかりません。""",
   """postList.short""": """投稿""",
+  """postList.popular""": """人気""",
+  """postList.popularDay""": """日""",
+  """postList.popularWeek""": """週""",
+  """postList.popularMonth""": """月""",
+  """postList.popularYear""": """年""",
+  """postList.previousPopularPeriod""": """前の期間""",
+  """postList.nextPopularPeriod""": """次の期間""",
   """postList.title""": """投稿リスト""",
   """postDetail.createdAt""": """作成日時""",
   """postDetail.author""": """作者""",
@@ -698,6 +761,7 @@ Map<String, String> get intlJaMap => {
   """about.downloadUpdate""": """アップデートをダウンロード""",
   """about.downloadUpdateHint""": """お使いのデバイス用に最新バージョンをブラウザでダウンロードしてください。""",
   """settings.title""": """設定""",
+  """settings.site""": """サイト""",
   """settings.theme""": """テーマ""",
   """settings.language""": """言語""",
   """settings.prefetchDns""": """DNS のプリフェッチ""",
@@ -711,6 +775,8 @@ Map<String, String> get intlJaMap => {
   """settings.light""": """ライト""",
   """settings.dark""": """ダーク""",
   """settings.languageDialog.title""": """言語""",
+  """settings.siteDialog.title""": """サイト""",
+  """settings.siteDialog.switching""": """サイトを切り替え中…""",
   """settings.themeModeDialog.title""": """テーマモード""",
   """settings.downloadDirectoryDialog.title""": """ダウンロードディレクトリ""",
   """settings.downloadDirectoryDialog.pickerTitle""": """ディレクトリを選択""",
